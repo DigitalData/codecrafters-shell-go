@@ -2,20 +2,43 @@ package main
 
 import (
 	"fmt"
+	"bufio"
+	"os"
+	"strings"
 )
 
+const DEBUG = false
 const CMD_EXIT = "exit"
+const CMD_ECHO = "echo"
 
 func main() {
-	var name string
-	
+
 	for true {
+		
 		fmt.Print("$ ")
-		fmt.Scanf("%s\n", &name)
-		if CMD_EXIT == name {
-			break
+
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
+		raw_args := scanner.Text()
+	
+		if len(raw_args) == 0 { continue }
+		cmd, cmd_args, has_args := strings.Cut(raw_args, " ")
+
+		if DEBUG {
+			fmt.Printf("DEBUG / cmd = \"%s\"\n", cmd)
+			fmt.Printf("DEBUG / cmd_args = \"%s\"\n", cmd_args)
+			fmt.Printf("DEBUG / has_args = %v\n", has_args)
 		}
-		fmt.Printf("%s: command not found\n", name)
+
+		if cmd == CMD_EXIT { break }
+
+		switch cmd {
+			case CMD_ECHO: 
+				fmt.Printf("%s\n", cmd_args)
+			default:
+				fmt.Printf("%s: command not found\n", cmd)
+		}
+
 	}
 	
 }
