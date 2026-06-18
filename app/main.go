@@ -5,11 +5,14 @@ import (
 	"bufio"
 	"os"
 	"strings"
+	"slices"
 )
 
 const DEBUG = false
 const CMD_EXIT = "exit"
 const CMD_ECHO = "echo"
+const CMD_TYPE = "type"
+
 
 func main() {
 
@@ -22,21 +25,31 @@ func main() {
 		raw_args := scanner.Text()
 	
 		if len(raw_args) == 0 { continue }
-		cmd, cmd_args, has_args := strings.Cut(raw_args, " ")
+		cmd, raw_cmd_args, has_args := strings.Cut(raw_args, " ")
 
 		if DEBUG {
 			fmt.Printf("DEBUG / cmd = \"%s\"\n", cmd)
-			fmt.Printf("DEBUG / cmd_args = \"%s\"\n", cmd_args)
+			fmt.Printf("DEBUG / raw_cmd_args = \"%s\"\n", raw_cmd_args)
 			fmt.Printf("DEBUG / has_args = %v\n", has_args)
 		}
 
 		if cmd == CMD_EXIT { break }
 
 		switch cmd {
-			case CMD_ECHO: 
-				fmt.Printf("%s\n", cmd_args)
-			default:
-				fmt.Printf("%s: command not found\n", cmd)
+		case CMD_ECHO: 
+			fmt.Printf("%s\n", raw_cmd_args)
+		case CMD_TYPE:
+			builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE}
+			cmd_args := strings.Split(raw_cmd_args, " ")
+			for _, cmd_arg := range cmd_args {
+				if slices.Contains(builtin_cmds, cmd_arg) {
+					fmt.Printf("%s is a shell builtin\n", cmd_arg)
+				} else {
+					fmt.Printf("%s: not found\n", cmd_arg)
+				}
+			}
+		default:
+			fmt.Printf("%s: command not found\n", cmd)
 		}
 
 	}
