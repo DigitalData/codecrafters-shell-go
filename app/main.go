@@ -7,8 +7,10 @@ import (
 func main() {
 	var name string
 	
-	fmt.Print("$ ")
-	fmt.Scanf("%s\n", &name)
-	fmt.Printf("%s: command not found", name)
+	for true {
+		fmt.Print("$ ")
+		fmt.Scanf("%s\n", &name)
+		fmt.Printf("%s: command not found\n", name)
+	}
 	
 }
