@@ -12,7 +12,6 @@ import (
 
 const DEBUG = false
 const CMD_EXIT = "exit"
-
 type CMDHandler func(raw_line string, cmd string, raw_args string, has_args bool)
 
 func handle_unknown(raw_line string, cmd string, raw_args string, has_args bool) {
@@ -42,7 +41,7 @@ func handle_echo(_ string, _ string, raw_cmd_args string, _ bool) {
 
 const CMD_TYPE = "type"
 func handle_type(_ string, _ string, raw_args string, _ bool) {
-	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE, CMD_PWD}
+	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE, CMD_PWD, CMD_CD}
 	cmd_args := strings.Split(raw_args, " ")
 	for _, cmd_arg := range cmd_args {
 		if slices.Contains(builtin_cmds, cmd_arg) {
@@ -70,9 +69,17 @@ func handle_pwd(_ string, _ string, _ string, _ bool) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%s\n", cwd)
-	
+	fmt.Printf("%s\n", cwd)	
 }
+
+const CMD_CD = "cd"
+func handle_cd(_ string, _ string, raw_args string, _ bool) {
+	var err error = os.Chdir(raw_args)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 
 func loop() bool {
 	fmt.Print("$ ")
@@ -101,6 +108,8 @@ func loop() bool {
 			handler = handle_type
 		case CMD_PWD:
 			handler = handle_pwd
+		case CMD_CD:
+			handler = handle_cd
 	}
 
 	if handler != nil {
