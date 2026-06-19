@@ -62,6 +62,18 @@ func handle_type(_ string, _ string, raw_args string, _ bool) {
 	}
 }
 
+const CMD_PWD = "pwd"
+func handle_pwd(_ string, _ string, _ string, _ bool) {
+	var cwd string
+	var err error
+	cwd, err = os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%s\n", cwd)
+	
+}
+
 func loop() bool {
 	fmt.Print("$ ")
 
@@ -87,6 +99,8 @@ func loop() bool {
 			handler = handle_echo
 		case CMD_TYPE:
 			handler = handle_type
+		case CMD_PWD:
+			handler = handle_pwd
 	}
 
 	if handler != nil {
