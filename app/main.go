@@ -42,7 +42,7 @@ func handle_echo(_ string, _ string, raw_cmd_args string, _ bool) {
 
 const CMD_TYPE = "type"
 func handle_type(_ string, _ string, raw_args string, _ bool) {
-	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE}
+	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE, CMD_PWD}
 	cmd_args := strings.Split(raw_args, " ")
 	for _, cmd_arg := range cmd_args {
 		if slices.Contains(builtin_cmds, cmd_arg) {
