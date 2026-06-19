@@ -22,8 +22,13 @@ func handle_unknown(raw_line string, cmd string, raw_args string, has_args bool)
 		return
 	}
 	
-	var cmd_args []string = strings.Split(raw_args, " ")
-	var prog *exec.Cmd = exec.Command(cmd, cmd_args...)
+	var prog *exec.Cmd
+	if has_args {
+		var cmd_args []string = strings.Split(raw_args, " ")
+		prog = exec.Command(cmd, cmd_args...)
+	} else {
+		prog = exec.Command(cmd)
+	}
 	var std_out_err []byte
 	std_out_err, err = prog.CombinedOutput()
 	if (err != nil) {
@@ -71,14 +76,17 @@ func handle_pwd(_ string, _ string, _ string, _ bool) {
 }
 
 const CMD_CD = "cd"
-func handle_cd(_ string, _ string, raw_args string, _ bool) {
+func handle_cd(_ string, _ string, raw_args string, has_args bool) {
 	var err error
 	var home_dir string
 	home_dir, err = os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	
+	if !has_args {
+		raw_args = "~"
+	}
 	raw_args = strings.ReplaceAll(raw_args, "~", home_dir)
 	
 	err = os.Chdir(raw_args)
@@ -94,7 +102,8 @@ func loop() bool {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	raw_line := scanner.Text()
-
+	raw_line = strings.TrimSpace(raw_line)
+	
 	if len(raw_line) == 0 { return true }
 	cmd, raw_args, has_args := strings.Cut(raw_line, " ")
 
