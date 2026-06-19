@@ -59,7 +59,16 @@ func main() {
 				fmt.Printf("%s: not found\n", cmd_arg)
 			}
 		default:
-			fmt.Printf("%s: command not found\n", cmd)
+			var err error
+			_, err = exec.LookPath(cmd)
+			if err != nil {
+				fmt.Printf("%s: command not found\n", cmd)
+				break
+			}
+			
+			var cmd_args []string
+			cmd_args = strings.Split(raw_cmd_args, " ")
+			exec.Command(cmd, cmd_args...)
 		}
 
 	}
