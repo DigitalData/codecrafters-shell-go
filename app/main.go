@@ -12,69 +12,85 @@ import (
 
 const DEBUG = false
 const CMD_EXIT = "exit"
-const CMD_ECHO = "echo"
-const CMD_TYPE = "type"
 
+type CMDHandler func(raw_line string, cmd string, raw_args string, has_args bool)
+
+func handle_unknown(raw_line string, cmd string, raw_args string, has_args bool) {
+	var err error
+	_, err = exec.LookPath(cmd)
+	if err != nil {
+		fmt.Printf("%s: command not found\n", cmd)
+		return
+	}
+	
+	var cmd_args []string
+	var prog *exec.Cmd
+	var std_out_err []byte
+	cmd_args = strings.Split(raw_args, " ")
+	prog = exec.Command(cmd, cmd_args...)
+	std_out_err, err = prog.CombinedOutput()
+	if (err != nil) {
+		log.Fatal(err)
+	}
+	fmt.Printf("%s", std_out_err)
+}
+
+const CMD_ECHO = "echo"
+func handle_echo(_ string, _ string, raw_cmd_args string, _ bool) {
+	fmt.Printf("%s\n", raw_cmd_args)
+}
+
+const CMD_TYPE = "type"
+func handle_type(_ string, _ string, raw_args string, _ bool) {
+	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE}
+	cmd_args := strings.Split(raw_args, " ")
+	for _, cmd_arg := range cmd_args {
+		if slices.Contains(builtin_cmds, cmd_arg) {
+			fmt.Printf("%s is a shell builtin\n", cmd_arg)
+			continue
+		} 
+		
+		var cmd_path string
+		var err error
+		cmd_path, err = exec.LookPath(cmd_arg)
+		if err == nil {
+			fmt.Printf("%s is %s\n", cmd_arg, cmd_path)
+			continue
+		} 
+		
+		fmt.Printf("%s: not found\n", cmd_arg)
+	}
+}
 
 func loop() bool {
 	fmt.Print("$ ")
 
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
-	raw_args := scanner.Text()
+	raw_line := scanner.Text()
 
-	if len(raw_args) == 0 { return true }
-	cmd, raw_cmd_args, has_args := strings.Cut(raw_args, " ")
+	if len(raw_line) == 0 { return true }
+	cmd, raw_args, has_args := strings.Cut(raw_line, " ")
 
 	if DEBUG {
 		fmt.Printf("DEBUG / cmd = \"%s\"\n", cmd)
-		fmt.Printf("DEBUG / raw_cmd_args = \"%s\"\n", raw_cmd_args)
+		fmt.Printf("DEBUG / raw_cmd_args = \"%s\"\n", raw_args)
 		fmt.Printf("DEBUG / has_args = %v\n", has_args)
 	}
 
 	if cmd == CMD_EXIT { return false }
 
-	switch cmd {
-	case CMD_ECHO: 
-		fmt.Printf("%s\n", raw_cmd_args)
-	case CMD_TYPE:
-		builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE}
-		cmd_args := strings.Split(raw_cmd_args, " ")
-		for _, cmd_arg := range cmd_args {
-			if slices.Contains(builtin_cmds, cmd_arg) {
-				fmt.Printf("%s is a shell builtin\n", cmd_arg)
-				continue
-			} 
-			
-			var cmd_path string
-			var err error
-			cmd_path, err = exec.LookPath(cmd_arg)
-			if err == nil {
-				fmt.Printf("%s is %s\n", cmd_arg, cmd_path)
-				continue
-			} 
-			
-			fmt.Printf("%s: not found\n", cmd_arg)
-		}
-	default:
-		var err error
-		_, err = exec.LookPath(cmd)
-		if err != nil {
-			fmt.Printf("%s: command not found\n", cmd)
-			break
-		}
-		
-		var cmd_args []string
-		var prog *exec.Cmd
-		var std_out_err []byte
-		cmd_args = strings.Split(raw_cmd_args, " ")
-		prog = exec.Command(cmd, cmd_args...)
-		std_out_err, err = prog.CombinedOutput()
-		if (err != nil) {
-			log.Fatal(err)
-		}
-		fmt.Printf("%s", std_out_err)
+	var handler CMDHandler = handle_unknown
 
+	switch cmd {
+		case CMD_ECHO: 
+			handler = handle_echo
+		case CMD_TYPE:
+			handler = handle_type
+	}
+
+	if handler != nil {
+		handler(raw_line, cmd, raw_args, has_args)
 	}
 
 	return true
