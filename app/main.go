@@ -1,11 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"bufio"
+	"fmt"
 	"os"
-	"strings"
+	"os/exec"
 	"slices"
+	"strings"
 )
 
 const DEBUG = false
@@ -44,9 +45,18 @@ func main() {
 			for _, cmd_arg := range cmd_args {
 				if slices.Contains(builtin_cmds, cmd_arg) {
 					fmt.Printf("%s is a shell builtin\n", cmd_arg)
-				} else {
-					fmt.Printf("%s: not found\n", cmd_arg)
-				}
+					continue
+				} 
+				
+				var cmd_path string
+				var err error
+				cmd_path, err = exec.LookPath(cmd_arg)
+				if err == nil {
+					fmt.Printf("%s is %s\n", cmd_arg, cmd_path)
+					continue
+				} 
+				
+				fmt.Printf("%s: not found\n", cmd_arg)
 			}
 		default:
 			fmt.Printf("%s: command not found\n", cmd)
