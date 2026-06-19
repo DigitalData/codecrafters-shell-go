@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"slices"
@@ -67,8 +68,16 @@ func main() {
 			}
 			
 			var cmd_args []string
+			var prog *exec.Cmd
+			var std_out_err []byte
 			cmd_args = strings.Split(raw_cmd_args, " ")
-			exec.Command(cmd, cmd_args...)
+			prog = exec.Command(cmd, cmd_args...)
+			std_out_err, err = prog.CombinedOutput()
+			if (err != nil) {
+				log.Fatal(err)
+			}
+			fmt.Printf("%s\n", std_out_err)
+
 		}
 
 	}
