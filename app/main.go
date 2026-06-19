@@ -22,11 +22,9 @@ func handle_unknown(raw_line string, cmd string, raw_args string, has_args bool)
 		return
 	}
 	
-	var cmd_args []string
-	var prog *exec.Cmd
+	var cmd_args []string = strings.Split(raw_args, " ")
+	var prog *exec.Cmd = exec.Command(cmd, cmd_args...)
 	var std_out_err []byte
-	cmd_args = strings.Split(raw_args, " ")
-	prog = exec.Command(cmd, cmd_args...)
 	std_out_err, err = prog.CombinedOutput()
 	if (err != nil) {
 		log.Fatal(err)
@@ -76,7 +74,7 @@ const CMD_CD = "cd"
 func handle_cd(_ string, _ string, raw_args string, _ bool) {
 	var err error = os.Chdir(raw_args)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("cd: %s: No such file or directory\n", raw_args)
 	}
 }
 
