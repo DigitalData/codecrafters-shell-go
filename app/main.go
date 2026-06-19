@@ -72,7 +72,16 @@ func handle_pwd(_ string, _ string, _ string, _ bool) {
 
 const CMD_CD = "cd"
 func handle_cd(_ string, _ string, raw_args string, _ bool) {
-	var err error = os.Chdir(raw_args)
+	var err error
+	var home_dir string
+	home_dir, err = os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	raw_args = strings.ReplaceAll(raw_args, "~", home_dir)
+	
+	err = os.Chdir(raw_args)
 	if err != nil {
 		fmt.Printf("cd: %s: No such file or directory\n", raw_args)
 	}
