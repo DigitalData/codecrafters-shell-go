@@ -106,27 +106,38 @@ func split_args(raw_args string) []string {
 	backslash := false
 	raw_args = strings.TrimSpace(raw_args)
 	for _, r := range raw_args {
-		if (r == '\\' && !backslash) {
-			backslash = true
-			continue
-		}
 
-		if (r == '\'' && !backslash && !double_quotes) {
-			single_quotes = !single_quotes
-			continue
-		}
-		
-		if (r == '"' && !backslash && !single_quotes) {
-			double_quotes = !double_quotes
-			continue
-		}
+		quote := single_quotes || double_quotes
 
-		if (!backslash && !double_quotes && !single_quotes && unicode.IsSpace(r)) {
-			if (len(current_arg) > 0) {
-				args = append(args, current_arg)
-				current_arg = ""
+		if (!backslash) {
+			continue_loop := false
+			switch r {
+			case '\\':
+				backslash = true
+				continue_loop = true
+			case '\'':
+				if (!double_quotes) {
+					single_quotes = !single_quotes
+					continue_loop = true
+				}
+			case '"':
+				if (!single_quotes) {
+					double_quotes = !double_quotes
+					continue_loop = true
+				}
+			default:
+				if (unicode.IsSpace(r) && !quote) {
+					if (len(current_arg) > 0) {
+						args = append(args, current_arg)
+						current_arg = ""
+					}
+					continue_loop = true
+				}
 			}
-			continue
+
+			if (continue_loop) {
+				continue
+			}
 		}
 
 		current_arg += string(r)
