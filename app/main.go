@@ -113,8 +113,10 @@ func split_args(raw_args string) []string {
 			continue_loop := false
 			switch r {
 			case '\\':
-				backslash = true
-				continue_loop = true
+				if (!single_quotes) {
+					backslash = true
+					continue_loop = true
+				}
 			case '\'':
 				if (!double_quotes) {
 					single_quotes = !single_quotes
