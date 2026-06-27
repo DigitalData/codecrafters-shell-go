@@ -102,14 +102,20 @@ func split_args(raw_args string) []string {
 	var args []string
 	current_arg := ""
 	single_quotes := false
+	double_quotes := false
 	raw_args = strings.TrimSpace(raw_args)
 	for _, r := range raw_args {
-		if (r == '\'') {
+		if (r == '\'' && !double_quotes) {
 			single_quotes = !single_quotes
 			continue
 		}
+		
+		if (r == '"' && !single_quotes) {
+			double_quotes = !double_quotes
+			continue
+		}
 
-		if (!single_quotes && unicode.IsSpace(r)) {
+		if (!double_quotes && !single_quotes && unicode.IsSpace(r)) {
 			if (len(current_arg) > 0) {
 				args = append(args, current_arg)
 				current_arg = ""
