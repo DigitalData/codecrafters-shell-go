@@ -103,19 +103,25 @@ func split_args(raw_args string) []string {
 	current_arg := ""
 	single_quotes := false
 	double_quotes := false
+	backslash := false
 	raw_args = strings.TrimSpace(raw_args)
 	for _, r := range raw_args {
-		if (r == '\'' && !double_quotes) {
+		if (r == '\\' && !backslash) {
+			backslash = true
+			continue
+		}
+
+		if (r == '\'' && !backslash && !double_quotes) {
 			single_quotes = !single_quotes
 			continue
 		}
 		
-		if (r == '"' && !single_quotes) {
+		if (r == '"' && !backslash && !single_quotes) {
 			double_quotes = !double_quotes
 			continue
 		}
 
-		if (!double_quotes && !single_quotes && unicode.IsSpace(r)) {
+		if (!backslash && !double_quotes && !single_quotes && unicode.IsSpace(r)) {
 			if (len(current_arg) > 0) {
 				args = append(args, current_arg)
 				current_arg = ""
@@ -124,6 +130,7 @@ func split_args(raw_args string) []string {
 		}
 
 		current_arg += string(r)
+		backslash = false
 	}
 
 	if (len(current_arg) > 0) {
