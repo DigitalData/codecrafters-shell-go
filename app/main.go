@@ -13,9 +13,10 @@ import (
 
 const DEBUG = false
 const CMD_EXIT = "exit"
-type CMDHandler func(raw_line string, cmd string, raw_args string, has_args bool)
+// type CMDHandler func(raw_line string, cmd string, raw_args string, has_args bool)
+type CMDHandler func(raw_line string, cmd string, cmd_args []string, has_args bool)
 
-func handle_unknown(raw_line string, cmd string, raw_args string, has_args bool) {
+func handle_unknown(raw_line string, cmd string, cmd_args []string, has_args bool) {
 	var err error
 	_, err = exec.LookPath(cmd)
 	if err != nil {
@@ -25,7 +26,6 @@ func handle_unknown(raw_line string, cmd string, raw_args string, has_args bool)
 	
 	var prog *exec.Cmd
 	if has_args {
-		var cmd_args []string = split_args(raw_args)
 		prog = exec.Command(cmd, cmd_args...)
 	} else {
 		prog = exec.Command(cmd)
@@ -39,16 +39,14 @@ func handle_unknown(raw_line string, cmd string, raw_args string, has_args bool)
 }
 
 const CMD_ECHO = "echo"
-func handle_echo(_ string, _ string, raw_cmd_args string, _ bool) {
-	var cmd_args []string = split_args(raw_cmd_args)
+func handle_echo(_ string, _ string, cmd_args []string, _ bool) {
 	var output string = strings.Join(cmd_args, " ")
 	fmt.Printf("%s\n", output)
 }
 
 const CMD_TYPE = "type"
-func handle_type(_ string, _ string, raw_args string, _ bool) {
+func handle_type(_ string, _ string, cmd_args []string, _ bool) {
 	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE, CMD_PWD, CMD_CD}
-	cmd_args := split_args(raw_args)
 	for _, cmd_arg := range cmd_args {
 		if slices.Contains(builtin_cmds, cmd_arg) {
 			fmt.Printf("%s is a shell builtin\n", cmd_arg)
@@ -68,7 +66,7 @@ func handle_type(_ string, _ string, raw_args string, _ bool) {
 }
 
 const CMD_PWD = "pwd"
-func handle_pwd(_ string, _ string, _ string, _ bool) {
+func handle_pwd(_ string, _ string, _ []string, _ bool) {
 	var cwd string
 	var err error
 	cwd, err = os.Getwd()
@@ -79,18 +77,19 @@ func handle_pwd(_ string, _ string, _ string, _ bool) {
 }
 
 const CMD_CD = "cd"
-func handle_cd(_ string, _ string, raw_args string, has_args bool) {
+func handle_cd(_ string, _ string, cmd_args []string, has_args bool) {
 	var err error
 	var home_dir string
 	home_dir, err = os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
 	}
-	
-	if !has_args {
-		raw_args = "~"
+
+	var raw_args = "~"
+	if has_args {
+		raw_args = strings.Join(cmd_args, " ")
+		raw_args = strings.ReplaceAll(raw_args, "~", home_dir)
 	}
-	raw_args = strings.ReplaceAll(raw_args, "~", home_dir)
 	
 	err = os.Chdir(raw_args)
 	if err != nil {
@@ -98,14 +97,14 @@ func handle_cd(_ string, _ string, raw_args string, has_args bool) {
 	}
 }
 
-func split_args(raw_args string) []string {
+func parse_args(raw_line string) []string {
 	var args []string
 	current_arg := ""
 	single_quotes := false
 	double_quotes := false
 	backslash := false
-	raw_args = strings.TrimSpace(raw_args)
-	for _, r := range raw_args {
+	raw_line = strings.TrimSpace(raw_line)
+	for _, r := range raw_line {
 
 		quote := single_quotes || double_quotes
 
@@ -162,11 +161,15 @@ func loop() bool {
 	raw_line = strings.TrimSpace(raw_line)
 	
 	if len(raw_line) == 0 { return true }
-	cmd, raw_args, has_args := strings.Cut(raw_line, " ")
+	var args []string  = parse_args(raw_line)
+	if len(args) == 0 { return true }
+	var cmd string = args[0]
+	var cmd_args []string = args[1:]
+	var has_args bool = len(cmd_args) > 0
 
 	if DEBUG {
 		fmt.Printf("DEBUG / cmd = \"%s\"\n", cmd)
-		fmt.Printf("DEBUG / raw_cmd_args = \"%s\"\n", raw_args)
+		fmt.Printf("DEBUG / cmd_args = \"%v\"\n", cmd_args)
 		fmt.Printf("DEBUG / has_args = %v\n", has_args)
 	}
 
@@ -186,7 +189,7 @@ func loop() bool {
 	}
 
 	if handler != nil {
-		handler(raw_line, cmd, raw_args, has_args)
+		handler(raw_line, cmd, cmd_args, has_args)
 	}
 
 	return true
