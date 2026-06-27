@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"slices"
 	"strings"
+	"unicode"
 )
 
 const DEBUG = false
@@ -24,7 +25,7 @@ func handle_unknown(raw_line string, cmd string, raw_args string, has_args bool)
 	
 	var prog *exec.Cmd
 	if has_args {
-		var cmd_args []string = strings.Split(raw_args, " ")
+		var cmd_args []string = split_args(raw_args)
 		prog = exec.Command(cmd, cmd_args...)
 	} else {
 		prog = exec.Command(cmd)
@@ -39,13 +40,15 @@ func handle_unknown(raw_line string, cmd string, raw_args string, has_args bool)
 
 const CMD_ECHO = "echo"
 func handle_echo(_ string, _ string, raw_cmd_args string, _ bool) {
-	fmt.Printf("%s\n", raw_cmd_args)
+	var cmd_args []string = split_args(raw_cmd_args)
+	var output string = strings.Join(cmd_args, " ")
+	fmt.Printf("%s\n", output)
 }
 
 const CMD_TYPE = "type"
 func handle_type(_ string, _ string, raw_args string, _ bool) {
 	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE, CMD_PWD, CMD_CD}
-	cmd_args := strings.Split(raw_args, " ")
+	cmd_args := split_args(raw_args)
 	for _, cmd_arg := range cmd_args {
 		if slices.Contains(builtin_cmds, cmd_arg) {
 			fmt.Printf("%s is a shell builtin\n", cmd_arg)
@@ -93,6 +96,34 @@ func handle_cd(_ string, _ string, raw_args string, has_args bool) {
 	if err != nil {
 		fmt.Printf("cd: %s: No such file or directory\n", raw_args)
 	}
+}
+
+func split_args(raw_args string) []string {
+	var args []string
+	current_arg := ""
+	single_quotes := false
+	raw_args = strings.TrimSpace(raw_args)
+	for _, r := range raw_args {
+		if (r == '\'') {
+			single_quotes = !single_quotes
+			continue
+		}
+
+		if (!single_quotes && unicode.IsSpace(r)) {
+			if (len(current_arg) > 0) {
+				args = append(args, current_arg)
+				current_arg = ""
+			}
+			continue
+		}
+
+		current_arg += string(r)
+	}
+
+	if (len(current_arg) > 0) {
+		args = append(args, current_arg)
+	}
+	return args
 }
 
 
