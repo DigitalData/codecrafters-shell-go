@@ -199,6 +199,10 @@ func parse_args(raw_line string) ([]string, *Outputs, error) {
 							outputs.out_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
 						case SetOutputErr:
 							outputs.err_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
+						case SetOutputOutAppend:
+							outputs.out_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_APPEND, 0644)
+						case SetOutputErrAppend:
+							outputs.err_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_APPEND, 0644)
 						}
 						if (err != nil) {
 							return nil, nil, err
@@ -228,6 +232,10 @@ func parse_args(raw_line string) ([]string, *Outputs, error) {
 			outputs.out_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
 		case SetOutputErr:
 			outputs.err_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
+		case SetOutputOutAppend:
+			outputs.out_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
+		case SetOutputErrAppend:
+			outputs.err_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
 		}
 		if (err != nil) {
 			fmt.Println(err)
