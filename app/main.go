@@ -298,6 +298,26 @@ func main() {
 			readline.PcItem("echo"),
 			readline.PcItem("exit"),
 			readline.PcItemDynamic(func(s string) []string {
+				var raw_path string = os.Getenv("PATH")
+				raw_path = strings.ReplaceAll(raw_path, ";", ":")
+				var paths []string = strings.Split(raw_path, ":")
+				var matches []string
+				for _, path := range paths {
+					files, err := os.ReadDir(path)
+					if err != nil {
+						continue
+					}
+
+					for _, file := range files {
+						if (strings.HasPrefix(file.Name(), s)) {
+							matches = append(matches, file.Name())
+						}
+					}
+				}
+				
+				return matches
+			}),
+			readline.PcItemDynamic(func(s string) []string {
 				line_instance.Terminal.Bell()
 				return []string{}
 			}),
