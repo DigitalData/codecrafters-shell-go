@@ -290,7 +290,6 @@ func loop(line_instance *readline.Instance) bool {
 
 
 func main() {
-
 	var line_instance *readline.Instance
 	var err error
 	line_instance, err = readline.NewEx(&readline.Config{
@@ -298,6 +297,10 @@ func main() {
 		AutoComplete: readline.NewPrefixCompleter(
 			readline.PcItem("echo"),
 			readline.PcItem("exit"),
+			readline.PcItemDynamic(func(s string) []string {
+				line_instance.Terminal.Bell()
+				return []string{}
+			}),
 		),
 		InterruptPrompt: "^C",
 	})
