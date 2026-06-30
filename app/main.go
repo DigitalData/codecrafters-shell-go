@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -10,6 +9,8 @@ import (
 	"slices"
 	"strings"
 	"unicode"
+
+	"github.com/chzyer/readline"
 )
 
 const CMD_EXIT = "exit"
@@ -248,18 +249,16 @@ func parse_args(raw_line string) ([]string, *Outputs, error) {
 	return args, outputs, nil
 }
 
-func loop() bool {
-	fmt.Print("$ ")
-
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	raw_line := scanner.Text()
+func loop(line_instance *readline.Instance) bool {
+	raw_line, err := line_instance.Readline()
+	if (err != nil) {
+		panic(err)
+	} 
 	raw_line = strings.TrimSpace(raw_line)
 	
 	if len(raw_line) == 0 { return true }
 	var args []string
 	var outputs *Outputs
-	var err error
 	args, outputs, err = parse_args(raw_line)
 	if (err != nil) {
 		return true
@@ -291,5 +290,21 @@ func loop() bool {
 
 
 func main() {
-	for loop() { }
+
+	var line_instance *readline.Instance
+	var err error
+	line_instance, err = readline.NewEx(&readline.Config{
+		Prompt: "$ ",
+		AutoComplete: readline.NewPrefixCompleter(
+			readline.PcItem("echo"),
+			readline.PcItem("exit"),
+		),
+		InterruptPrompt: "^C",
+	})
+	if (err != nil) {
+		panic(err)
+	}
+	defer line_instance.Close()
+	line_instance.CaptureExitSignal()
+	for loop(line_instance) { }
 }
