@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"unicode"
@@ -14,7 +15,6 @@ import (
 )
 
 const CMD_EXIT = "exit"
-// type CMDHandler func(raw_line string, cmd string, raw_args string, has_args bool)
 type CMDHandler func(raw_line string, cmd string, cmd_args []string, has_args bool, outputs *Outputs)
 
 type SetOutputMode int
@@ -47,7 +47,6 @@ func handle_unknown(raw_line string, cmd string, cmd_args []string, has_args boo
 	var err error
 	_, err = exec.LookPath(cmd)
 	if err != nil {
-		// fmt.Printf("%s: command not found\n", cmd)
 		outputs.errf("%s: command not found\n", cmd)
 		return
 	}
@@ -58,7 +57,6 @@ func handle_unknown(raw_line string, cmd string, cmd_args []string, has_args boo
 	} else {
 		prog = exec.Command(cmd)
 	}
-	// var std_out_err []byte
 	prog.Stdout = outputs.out_writer
 	prog.Stderr = outputs.err_writer
 	err = prog.Run()
@@ -67,7 +65,6 @@ func handle_unknown(raw_line string, cmd string, cmd_args []string, has_args boo
 const CMD_ECHO = "echo"
 func handle_echo(_ string, _ string, cmd_args []string, _ bool, outputs *Outputs) {
 	var output string = strings.Join(cmd_args, " ")
-	// fmt.Printf("%s\n", output)
 	outputs.outf("%s\n", output)
 }
 
@@ -76,7 +73,6 @@ func handle_type(_ string, _ string, cmd_args []string, _ bool, outputs *Outputs
 	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE, CMD_PWD, CMD_CD}
 	for _, cmd_arg := range cmd_args {
 		if slices.Contains(builtin_cmds, cmd_arg) {
-			// fmt.Printf("%s is a shell builtin\n", cmd_arg)
 			outputs.outf("%s is a shell builtin\n", cmd_arg)
 			continue
 		} 
@@ -85,12 +81,10 @@ func handle_type(_ string, _ string, cmd_args []string, _ bool, outputs *Outputs
 		var err error
 		cmd_path, err = exec.LookPath(cmd_arg)
 		if err == nil {
-			// fmt.Printf("%s is %s\n", cmd_arg, cmd_path)
 			outputs.outf("%s is %s\n", cmd_arg, cmd_path)
 			continue
 		} 
 		
-		// fmt.Printf("%s: not found\n", cmd_arg)
 		outputs.outf("%s: not found\n", cmd_arg)
 	}
 }
@@ -103,7 +97,6 @@ func handle_pwd(_ string, _ string, _ []string, _ bool, outputs *Outputs) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// fmt.Printf("%s\n", cwd)	
 	outputs.outf("%s\n", cwd)	
 }
 
@@ -124,7 +117,6 @@ func handle_cd(_ string, _ string, cmd_args []string, has_args bool, outputs *Ou
 	
 	err = os.Chdir(raw_args)
 	if err != nil {
-		// fmt.Printf("cd: %s: No such file or directory\n", raw_args)
 		outputs.outf("cd: %s: No such file or directory\n", raw_args)
 	}
 }
@@ -292,9 +284,12 @@ func loop(line_instance *readline.Instance) bool {
 func main() {
 	var line_instance *readline.Instance
 	var err error
+	var last_s string
 	line_instance, err = readline.NewEx(&readline.Config{
 		Prompt: "$ ",
-		AutoComplete: readline.NewPrefixCompleter(
+		InterruptPrompt: "^C",
+	})
+	line_instance.Config.AutoComplete = readline.NewPrefixCompleter(
 			readline.PcItem("echo"),
 			readline.PcItem("exit"),
 			readline.PcItemDynamic(func(s string) []string {
@@ -309,22 +304,41 @@ func main() {
 					}
 
 					for _, file := range files {
-						if (strings.HasPrefix(file.Name(), s)) {
-							matches = append(matches, file.Name())
+						var filename string
+						filename = strings.TrimSuffix(file.Name(), filepath.Ext(file.Name()))
+						if (filename == s) {
+							line_instance.Terminal.Bell()
+							return []string{s}
+						} else if (strings.HasPrefix(filename, s)) {
+							matches = append(matches, filename)
 						}
 					}
 				}
 				
+				if (last_s != s && len(matches) > 1) {
+					last_s = s
+					line_instance.Terminal.Bell()
+					return []string{}
+				}
+				last_s = ""
+				slices.Sort(matches)
+
+				if (len(matches) > 1) {
+					err = line_instance.Terminal.ExitRawMode()
+					if (err != nil) {
+						panic(err)
+					}
+					fmt.Printf("\n%s\n", strings.Join(matches, "\t"))
+					defer line_instance.Terminal.EnterRawMode()
+				} else if (len(matches) == 0) {
+					line_instance.Terminal.Bell()
+				}
+
 				return matches
 			}),
-			readline.PcItemDynamic(func(s string) []string {
-				line_instance.Terminal.Bell()
-				return []string{}
-			}),
-		),
-		InterruptPrompt: "^C",
-	})
-	if (err != nil) {
+		)
+	if
+	 (err != nil) {
 		panic(err)
 	}
 	defer line_instance.Close()
