@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"slices"
 	"strings"
 	"unicode"
@@ -150,170 +148,6 @@ func handle_cd(_ string, _ string, cmd_args []string, has_args bool, outputs *Ou
 	err = os.Chdir(raw_args)
 	if err != nil {
 		outputs.outf("cd: %s: No such file or directory\r\n", raw_args)
-	}
-}
-
-func match_autocomplete(line string) ([]string, bool) {
-	var matches []string
-
-	commands := []string{"echo", "exit"}
-	for _, command := range commands {
-		if (command == line) {
-			return []string{command}, true
-		} else if (strings.HasPrefix(command, line)) {
-			matches = append(matches, command)
-		}
-	}
-
-	if (len(matches) > 0) {
-		return matches, false
-	}
-
-	var raw_path string = os.Getenv("PATH")
-	raw_path = strings.ReplaceAll(raw_path, ";", ":")
-	var paths []string = strings.Split(raw_path, ":")
-	for _, path := range paths {
-		files, err := os.ReadDir(path)
-		if err != nil {
-			continue
-		}
-
-		for _, file := range files {
-			raw_filename := file.Name()
-			filename := strings.TrimSuffix(raw_filename, filepath.Ext(file.Name()))
-			if (filename == line) {
-				return []string{line}, true
-			} else if (raw_filename == line) {
-				return []string{line}, true
-			} else if (strings.HasPrefix(raw_filename, line)) {
-				matches = append(matches, raw_filename)
-			}
-		}
-	}
-	
-	slices.Sort(matches)
-	return matches, false
-}
-
-func print_matches(matches []string) {
-	entry_size := 0
-	for _, match := range matches {
-		entry_size = max(entry_size, len(match))
-	}
-
-	entry_size += 3
-	slices.Sort(matches)
-	text := ""
-	width, _, err := term.GetSize(int(os.Stdout.Fd()))
-	if err != nil {
-		panic(err)
-	}
-	max_cols := int(width / entry_size)
-	num_cols := 0
-	for _, match := range matches {
-		text += fmt.Sprintf("%-*s", entry_size, match)
-		num_cols += 1
-		if (num_cols >= max_cols) {
-			text += "\n"
-			num_cols = 0
-		}
-	}
-
-	fmt.Printf("\r\n%s\r\n", text)
-}
-
-func handle_matches(line string, matches []string, double_tab bool) (new_line string, new_double_tab bool) {
-	line_suffix := ""
-
-	if (len(matches) == 0) {
-		fmt.Print("\a")
-		return line, false
-	}
-
-	if (len(matches) == 1) {
-		line_suffix = strings.TrimPrefix(matches[0], line) + " "
-	} else {
-		lcp := line
-		for {
-			lcp_index := len(lcp)
-			first_match := matches[0]
-			if (len(first_match) <= lcp_index) {
-				break
-			}
-			lcp_char := first_match[lcp_index]
-			break_early := false
-			for _, match := range matches[1:] {
-				if (len(match) <= lcp_index) {
-					break_early = true
-					break
-				}
-				if (lcp_char != match[lcp_index]) {
-					break_early = true
-					break
-				}
-			}
-			if break_early {
-				break
-			}
-			lcp += string(lcp_char)
-		}
-
-		line_suffix = strings.TrimPrefix(lcp, line)
-		if (lcp == line && double_tab) {
-			print_matches(matches)
-			fmt.Printf("$ %s", line)
-		} else if (!double_tab) {
-			fmt.Print("\a")
-		}
-	}
-	fmt.Print(line_suffix)
-	return line + line_suffix, !double_tab
-}
-
-func read_line() (string) {
-	fmt.Print("$ ")
-	reader := bufio.NewReader(os.Stdin)
-	double_tab := false
-	var line string
-	for {
-		next_rune, _, err := reader.ReadRune()
-		if (err != nil) {
-			panic(err)
-		}
-
-		if (next_rune != rune(KeyTab)) {
-			double_tab = false
-		}
-
-		switch next_rune {
-		case rune(KeyTab):
-			var matches []string
-			var exact_match bool
-			matches, exact_match = match_autocomplete(string(line))
-			if exact_match {
-				fmt.Print(" ")
-				line += " "
-			} else if (len(matches) == 0) {
-				fmt.Print("\a")
-			} else {
-				line, double_tab = handle_matches(line, matches, double_tab)
-			}
-		case rune(KeyBackspace):
-			line_len := len(line)
-			if (line_len > 0) {
-				fmt.Print("\b \b")
-				line = line[:line_len - 1]
-			}
-		case rune(KeyCtrlC):
-			os.Exit(0)
-		case rune(KeyCtrlJ), rune(KeyEnter), rune(0):
-			fmt.Print("\r\n")
-			return string(line)
-		default:
-			fmt.Print(string(next_rune))
-			line += string(next_rune)
-		}
-
 	}
 }
 
