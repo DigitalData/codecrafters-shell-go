@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 
 	"golang.org/x/term"
 )
+
 
 func get_partial(line string) (partial string, is_arg bool) {
 	simple_line := strings.ReplaceAll(line, "\t", " ")
@@ -63,16 +65,24 @@ func match_path_programs(partial string, matches []string) (new_matches []string
 }
 
 func match_dir(partial string, matches []string) (new_matches []string, exact bool) {
-	
+	var err error
+
 	dir := path.Dir(partial)
-	files, err := os.ReadDir(dir)
+	var wd string
+	wd, err = os.Getwd()
 	if (err != nil) {
 		panic(err)
 	}
+	wd_fs := os.DirFS(wd)
+	files, err := fs.ReadDir(wd_fs, dir)
+
 	for  _, file := range files {
 		filename := file.Name()
 		if (dir != ".") {
 			filename = dir + string(os.PathSeparator) + filename
+		}
+		if (file.IsDir()) {
+			filename += string(os.PathSeparator)
 		}
 		if filename == partial {
 			return []string{partial}, true
@@ -85,21 +95,16 @@ func match_dir(partial string, matches []string) (new_matches []string, exact bo
 }
 
 func match_autocomplete(partial string, is_arg bool) (matches []string, exact bool) {
-
-	if (len(partial) == 0) {
-		return matches, false
-	}
-
-	if (!is_arg) {
-		matches, exact = match_commands(partial, matches)
-		if len(matches) > 0 {
-			return matches, exact
-		}
-
-		return match_path_programs(partial, matches)
-	} else {
+	if (is_arg) {
 		return match_dir(partial, matches)
 	}
+
+	matches, exact = match_commands(partial, matches)
+	if len(matches) > 0 {
+		return matches, exact
+	}
+
+	return match_path_programs(partial, matches)
 }
 
 func print_matches(matches []string) {
@@ -129,16 +134,16 @@ func print_matches(matches []string) {
 	fmt.Printf("\r\n%s\r\n", text)
 }
 
-func handle_matches(line string, partial string, matches []string, double_tab bool) (new_line string, new_double_tab bool) {
+func handle_matches(line string, partial string, matches []string, double_tab bool) (new_line string) {
 	partial_suffix := ""
 
-	if len(matches) == 0 {
-		fmt.Print("\a")
-		return line, false
-	}
-
 	if len(matches) == 1 {
-		partial_suffix = strings.TrimPrefix(matches[0], partial) + " "
+		
+		partial_suffix = strings.TrimPrefix(matches[0], partial)
+		len_suffix := len(partial_suffix)
+		if (len_suffix > 0 && partial_suffix[len_suffix - 1] != os.PathSeparator) {
+			partial_suffix += " "
+		} 
 	} else {
 		lcp := partial
 		for {
@@ -174,7 +179,7 @@ func handle_matches(line string, partial string, matches []string, double_tab bo
 		}
 	}
 	fmt.Print(partial_suffix)
-	return line + partial_suffix, !double_tab
+	return line + partial_suffix
 }
 
 func handle_autocomplete(line string, double_tab bool) (new_line string, new_double_tab bool) {
@@ -191,7 +196,7 @@ func handle_autocomplete(line string, double_tab bool) (new_line string, new_dou
 	} else if len(matches) == 0 {
 		fmt.Print("\a")
 	} else {
-		line, double_tab = handle_matches(line, partial, matches, double_tab)
+		line = handle_matches(line, partial, matches, double_tab)
 	}
-	return line, double_tab
+	return line, !double_tab
 }
