@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"io"
+	"log"
 	"os"
 	"strings"
 	"unicode"
@@ -23,30 +22,30 @@ const (
 )
 
 
-type SetOutputMode int
-const (
-	UnsetOutput SetOutputMode = iota
-	SetOutputOut
-	SetOutputOutAppend
-	SetOutputErr
-	SetOutputErrAppend
-)
-type Outputs struct {
-	out_writer io.Writer
-	err_writer io.Writer
-}
-func (o *Outputs) outf(fstr string, vars ...any) {
-	fmt.Fprintf(o.out_writer, fstr, vars...)
-}
-func (o *Outputs) out(str string) {
-	fmt.Fprint(o.out_writer, str)
-}
-func (o *Outputs) errf(fstr string, vars ...any) {
-	fmt.Fprintf(o.err_writer, fstr, vars...)
-}
-func (o *Outputs) err(str string) {
-	fmt.Fprint(o.err_writer, str)
-}
+// type SetOutputMode int
+// const (
+// 	UnsetOutput SetOutputMode = iota
+// 	SetOutputOut
+// 	SetOutputOutAppend
+// 	SetOutputErr
+// 	SetOutputErrAppend
+// )
+// type Outputs struct {
+// 	out_writer io.Writer
+// 	err_writer io.Writer
+// }
+// func (o *Outputs) outf(fstr string, vars ...any) {
+// 	fmt.Fprintf(o.out_writer, fstr, vars...)
+// }
+// func (o *Outputs) out(str string) {
+// 	fmt.Fprint(o.out_writer, str)
+// }
+// func (o *Outputs) errf(fstr string, vars ...any) {
+// 	fmt.Fprintf(o.err_writer, fstr, vars...)
+// }
+// func (o *Outputs) err(str string) {
+// 	fmt.Fprint(o.err_writer, str)
+// }
 
 // type CRLFWriter struct {
 // 	inner_writer io.Writer
@@ -148,15 +147,15 @@ func (o *Outputs) err(str string) {
 // 	}
 // }
 
-func get_filepath(filepath string) string {
-	affixes := [...]string{"'", "\""}
-	for _, r := range affixes {
-		if (strings.HasPrefix(filepath, r) && strings.HasSuffix(filepath, r)) {
-			filepath = strings.Trim(filepath, r)
-		}
-	}
-	return filepath
-}
+// func get_filepath(filepath string) string {
+// 	affixes := [...]string{"'", "\""}
+// 	for _, r := range affixes {
+// 		if (strings.HasPrefix(filepath, r) && strings.HasSuffix(filepath, r)) {
+// 			filepath = strings.Trim(filepath, r)
+// 		}
+// 	}
+// 	return filepath
+// }
 
 func parse_args(raw_line string) ([]string, *Outputs, error) {
 	var args []string
@@ -213,18 +212,22 @@ func parse_args(raw_line string) ([]string, *Outputs, error) {
 						break
 					} else if(set_output != UnsetOutput) {
 						var err error
-						var filepath string = get_filepath(current_arg)
-						switch set_output {
-						case SetOutputOut:
-							outputs.out_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
-						case SetOutputErr:
-							outputs.err_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
-						case SetOutputOutAppend:
-							outputs.out_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_APPEND, 0644)
-						case SetOutputErrAppend:
-							outputs.err_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_APPEND, 0644)
-						}
+						// var filepath string = get_filepath(current_arg)
+						// switch set_output {
+						// case SetOutputOut:
+						// 	outputs.out_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
+						// case SetOutputErr:
+						// 	outputs.err_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
+						// case SetOutputOutAppend:
+						// 	outputs.out_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_APPEND, 0644)
+						// case SetOutputErrAppend:
+						// 	outputs.err_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_APPEND, 0644)
+						// }
+						// outputs, err = update_outputs(outputs, current_arg, set_output)
+						err = outputs.update(current_arg, set_output)
+
 						if (err != nil) {
+							log.Fatal(err)
 							return nil, nil, err
 						}
 						set_output = UnsetOutput
@@ -245,18 +248,20 @@ func parse_args(raw_line string) ([]string, *Outputs, error) {
 	}
 
 	if (set_output != UnsetOutput) {
-		filepath := get_filepath(current_arg)
+		// filepath := get_filepath(current_arg)
 		var err error
-		switch set_output {
-		case SetOutputOut:
-			outputs.out_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
-		case SetOutputErr:
-			outputs.err_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
-		case SetOutputOutAppend:
-			outputs.out_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
-		case SetOutputErrAppend:
-			outputs.err_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
-		}
+		// switch set_output {
+		// case SetOutputOut:
+		// 	outputs.out_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
+		// case SetOutputErr:
+		// 	outputs.err_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
+		// case SetOutputOutAppend:
+		// 	outputs.out_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
+		// case SetOutputErrAppend:
+		// 	outputs.err_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
+		// }
+		// outputs, err = update_outputs(outputs, current_arg, set_output)
+		err = outputs.update(current_arg, set_output)
 		if (err != nil) {
 			return nil, nil, err
 		}
@@ -267,7 +272,7 @@ func parse_args(raw_line string) ([]string, *Outputs, error) {
 	return args, outputs, nil
 }
 
-func loop() bool {
+func loop(term_state *term.State) bool {
 	var raw_line string = read_line()
 	raw_line = strings.TrimSpace(raw_line)
 	
@@ -297,21 +302,24 @@ func loop() bool {
 			handler = handle_cd
 	}
 
+	term.Restore(int(os.Stdin.Fd()), term_state)
 	if handler != nil {
 		handler(raw_line, cmd, cmd_args, has_args, outputs)
 	}
+	new_state, err := term.MakeRaw(int(os.Stdin.Fd()))
+	*term_state = *new_state
 
 	return true
 }
 
 func main() {
-	var old_state *term.State
+	var term_state *term.State
 	var err error
-	old_state, err = term.MakeRaw(int(os.Stdin.Fd()))
+	term_state, err = term.MakeRaw(int(os.Stdin.Fd()))
 	if (err != nil) {
 		panic(err)
 	}
-	defer term.Restore(int(os.Stdin.Fd()), old_state)
+	defer term.Restore(int(os.Stdin.Fd()), term_state)
 
-	for loop() {}
+	for loop(term_state) {}
 }
