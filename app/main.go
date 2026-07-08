@@ -9,24 +9,14 @@ import (
 	"golang.org/x/term"
 )
 
-type CommandRune int
-const (
-	KeyCtrlC 		CommandRune = 3
-	KeyTab 			CommandRune = 9
-	KeyCtrlJ 		CommandRune = 10
-	KeyEnter 		CommandRune = 13
-	KeyBackspace 	CommandRune = 127
-)
-
-func parse_args(raw_line string) ([]string, *Outputs, error) {
-	var args []string
+func parse_args(raw_line string) (args []string, outputs *Outputs, err error) {
 	current_arg := ""
 	single_quotes := false
 	double_quotes := false
 	backslash := false
 	set_output := UnsetOutput
 	raw_line = strings.TrimSpace(raw_line)
-	outputs := &Outputs{out_writer: os.Stdout, err_writer: os.Stdout}
+	outputs = &Outputs{out_writer: os.Stdout, err_writer: os.Stdout}
 
 	for _, r := range raw_line {
 		quote := single_quotes || double_quotes
@@ -72,7 +62,6 @@ func parse_args(raw_line string) ([]string, *Outputs, error) {
 					if (len(current_arg) == 0) {
 						break
 					} else if(set_output != UnsetOutput) {
-						var err error
 						err = outputs.update(current_arg, set_output)
 
 						if (err != nil) {
@@ -97,7 +86,6 @@ func parse_args(raw_line string) ([]string, *Outputs, error) {
 	}
 
 	if (set_output != UnsetOutput) {
-		var err error
 		err = outputs.update(current_arg, set_output)
 		if (err != nil) {
 			return nil, nil, err
@@ -157,6 +145,6 @@ func main() {
 		panic(err)
 	}
 	defer term.Restore(int(os.Stdin.Fd()), term_state)
-
+	
 	for loop(term_state) {}
 }

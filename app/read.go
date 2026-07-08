@@ -6,6 +6,15 @@ import (
 	"os"
 )
 
+type CommandRune int
+const (
+	KeyCtrlC 		CommandRune = 3
+	KeyTab 			CommandRune = 9
+	KeyCtrlJ 		CommandRune = 10
+	KeyEnter 		CommandRune = 13
+	KeyBackspace 	CommandRune = 127
+)
+
 func read_line() string {
 	fmt.Print("$ ")
 	reader := bufio.NewReader(os.Stdin)
