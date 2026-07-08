@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -62,12 +63,17 @@ func match_path_programs(partial string, matches []string) (new_matches []string
 }
 
 func match_dir(partial string, matches []string) (new_matches []string, exact bool) {
-	files, err := os.ReadDir(".")
+	
+	dir := path.Dir(partial)
+	files, err := os.ReadDir(dir)
 	if (err != nil) {
 		panic(err)
 	}
 	for  _, file := range files {
 		filename := file.Name()
+		if (dir != ".") {
+			filename = dir + string(os.PathSeparator) + filename
+		}
 		if filename == partial {
 			return []string{partial}, true
 		} else if (strings.HasPrefix(filename, partial)) {
