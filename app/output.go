@@ -36,7 +36,6 @@ func (o *Outputs) err(str string) {
 }
 func (o *Outputs) update(arg string, set_output SetOutputMode) (err error) {
 	var filepath string = get_filepath(arg)
-	// err = nil
 	switch set_output {
 	case SetOutputOut:
 		o.out_writer, err = os.OpenFile(filepath, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
