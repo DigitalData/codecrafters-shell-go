@@ -95,6 +95,7 @@ func handle_cd(_ string, _ string, cmd_args []string, has_args bool, outputs *Ou
 }
 
 const CMD_COMPLETE = "complete"
+var _completions map[string]string = make(map[string]string)
 
 func handle_complete(raw_line string, cmd string, cmd_args []string, has_args bool, outputs *Outputs) {
 	if (len(cmd_args) <= 1) {
@@ -102,10 +103,26 @@ func handle_complete(raw_line string, cmd string, cmd_args []string, has_args bo
 	}
 
 	flag := cmd_args[0]
-	flag_value := cmd_args[1]
+	num_args := len(cmd_args)
 
 	switch flag {
+	case "-C":
+		if (num_args != 3) {
+			outputs.err("complete: expected two inputs for '-C' flag\n")
+			return
+		}
+		program := cmd_args[num_args - 1]
+		program_path := cmd_args[1]
+		_completions[program] = program_path
 	case "-p":
-		outputs.errf("complete: %s: no completion specification\n", flag_value)
+		program := cmd_args[num_args - 1]
+		program_path, exists := _completions[program]
+		if (exists) {
+			outputs.outf("complete -C '%s' %s\n", program_path, program)
+		} else {
+			outputs.errf("complete: %s: no completion specification\n", program)
+		}
+	default:
+		outputs.errf("complete: unsupported flag %s\n", flag)
 	}
 }
