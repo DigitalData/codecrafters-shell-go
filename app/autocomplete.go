@@ -26,7 +26,7 @@ func get_partial(line string) (partial string, is_arg bool) {
 }
 
 func match_commands(partial string, matches []string) (new_matches []string, exact bool) {
-	commands := []string{"echo", "exit"}
+	commands := []string{CMD_ECHO, CMD_EXIT}
 	for _, command := range commands {
 		if command == partial {
 			return []string{command}, true

@@ -41,7 +41,7 @@ func handle_echo(_ string, _ string, cmd_args []string, _ bool, outputs *Outputs
 const CMD_TYPE = "type"
 
 func handle_type(_ string, _ string, cmd_args []string, _ bool, outputs *Outputs) {
-	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE, CMD_PWD, CMD_CD}
+	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE, CMD_PWD, CMD_CD, CMD_COMPLETE}
 	for _, cmd_arg := range cmd_args {
 		if slices.Contains(builtin_cmds, cmd_arg) {
 			outputs.outf("%s is a shell builtin\n", cmd_arg)
@@ -93,3 +93,6 @@ func handle_cd(_ string, _ string, cmd_args []string, has_args bool, outputs *Ou
 		outputs.outf("cd: %s: No such file or directory\n", raw_args)
 	}
 }
+
+const CMD_COMPLETE = "complete"
+
