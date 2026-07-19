@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"io/fs"
+	"log"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"slices"
@@ -13,16 +15,16 @@ import (
 )
 
 
-func get_partial(line string) (partial string, is_arg bool) {
+func get_completion_parts(line string) (program string, partial string, is_arg bool) {
 	simple_line := strings.ReplaceAll(line, "\t", " ")
 	affixes := strings.Split(simple_line, " ")
 	is_arg = false
 	if (len(affixes) == 0) {
-		return "", is_arg
+		return "", "", is_arg
 	} else if (len(affixes) > 1) {
 		is_arg = true
 	}
-	return affixes[len(affixes) - 1], is_arg
+	return affixes[0], affixes[len(affixes) - 1], is_arg
 }
 
 func match_commands(partial string, matches []string) (new_matches []string, exact bool) {
@@ -94,6 +96,21 @@ func match_dir(partial string, matches []string) (new_matches []string, exact bo
 	return matches, false
 }
 
+func match_completion_script(program string) (matches []string) {
+	completion_script, exists := _completions[program]
+	if (!exists) {
+		return matches
+	}
+
+	prog := exec.Command(completion_script)
+	out, err := prog.CombinedOutput()
+	if (err != nil) {
+		log.Fatal(err)
+	}
+	matches = append(matches, strings.TrimRight(string(out), "\r\n"))
+	return matches
+}
+
 func match_autocomplete(partial string, is_arg bool) (matches []string, exact bool) {
 	if (is_arg) {
 		return match_dir(partial, matches)
@@ -138,7 +155,6 @@ func handle_matches(line string, partial string, matches []string, double_tab bo
 	partial_suffix := ""
 
 	if len(matches) == 1 {
-		
 		partial_suffix = strings.TrimPrefix(matches[0], partial)
 		len_suffix := len(partial_suffix)
 		if (len_suffix > 0 && partial_suffix[len_suffix - 1] != os.PathSeparator) {
@@ -185,11 +201,15 @@ func handle_matches(line string, partial string, matches []string, double_tab bo
 func handle_autocomplete(line string, double_tab bool) (new_line string, new_double_tab bool) {
 	var matches []string
 	var exact_match bool	
+	var program string
 	var partial string
 	var is_arg bool
-	partial, is_arg = get_partial(line)
+	program, partial, is_arg = get_completion_parts(line)
 
-	matches, exact_match = match_autocomplete(partial, is_arg)
+	matches = match_completion_script(program)
+	if (len(matches) == 0) {
+		matches, exact_match = match_autocomplete(partial, is_arg)
+	}
 	if exact_match {
 		fmt.Print(" ")
 		line += " "
