@@ -105,7 +105,7 @@ func match_completion_script(line string, parts []string) (matches []string) {
 		partial = parts[num_parts - 1]
 	}
 	previous_word := ""
-	if (num_parts > 2) {
+	if (num_parts > 1) {
 		previous_word = parts[num_parts - 2]
 	}
 
@@ -120,7 +120,8 @@ func match_completion_script(line string, parts []string) (matches []string) {
 	if (len(out) == 0) {
 		fmt.Print("\a")
 	} else {
-		matches = append(matches, strings.TrimRight(string(out), "\r\n"))
+		match_output := strings.TrimRight(string(out), "\r\n")
+		matches = strings.Split(match_output, "\n")
 	}
 	return matches
 }
