@@ -96,3 +96,16 @@ func handle_cd(_ string, _ string, cmd_args []string, has_args bool, outputs *Ou
 
 const CMD_COMPLETE = "complete"
 
+func handle_complete(raw_line string, cmd string, cmd_args []string, has_args bool, outputs *Outputs) {
+	if (len(cmd_args) <= 1) {
+		outputs.err("complete: no flags given\n")
+	}
+
+	flag := cmd_args[0]
+	flag_value := cmd_args[1]
+
+	switch flag {
+	case "-p":
+		outputs.errf("complete: %s: no completion specification\n", flag_value)
+	}
+}

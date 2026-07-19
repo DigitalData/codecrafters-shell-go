@@ -125,6 +125,8 @@ func loop(term_state *term.State) bool {
 			handler = handle_pwd
 		case CMD_CD:
 			handler = handle_cd
+		case CMD_COMPLETE:
+			handler = handle_complete
 	}
 
 	term.Restore(int(os.Stdin.Fd()), term_state)
