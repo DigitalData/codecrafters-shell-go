@@ -114,6 +114,13 @@ func handle_complete(raw_line string, cmd string, cmd_args []string, has_args bo
 		program := cmd_args[num_args - 1]
 		program_path := cmd_args[1]
 		_completions[program] = program_path
+	case "-r":
+		if (num_args != 2) {
+			outputs.err("complete: expected two inputs for '-C' flag\n")
+			return
+		}
+		program := cmd_args[num_args - 1]
+		delete(_completions, program)
 	case "-p":
 		program := cmd_args[num_args - 1]
 		program_path, exists := _completions[program]

@@ -109,7 +109,6 @@ func match_completion_script(line string, parts []string) (matches []string) {
 		previous_word = parts[num_parts - 2]
 	}
 
-
 	prog := exec.Command(completion_script, program, partial, previous_word)
 	prog.Env = append(prog.Env, fmt.Sprintf("COMP_LINE=%s", line))
 	prog.Env = append(prog.Env, fmt.Sprintf("COMP_POINT=%d", len(line)))
