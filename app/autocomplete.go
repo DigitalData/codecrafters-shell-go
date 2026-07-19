@@ -107,7 +107,11 @@ func match_completion_script(program string) (matches []string) {
 	if (err != nil) {
 		log.Fatal(err)
 	}
-	matches = append(matches, strings.TrimRight(string(out), "\r\n"))
+	if (len(out) == 0) {
+		fmt.Print("\a")
+	} else {
+		matches = append(matches, strings.TrimRight(string(out), "\r\n"))
+	}
 	return matches
 }
 
