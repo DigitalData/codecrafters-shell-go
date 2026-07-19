@@ -15,16 +15,9 @@ import (
 )
 
 
-func get_completion_parts(line string) (program string, partial string, is_arg bool) {
+func get_completion_parts(line string) (parts []string) {
 	simple_line := strings.ReplaceAll(line, "\t", " ")
-	affixes := strings.Split(simple_line, " ")
-	is_arg = false
-	if (len(affixes) == 0) {
-		return "", "", is_arg
-	} else if (len(affixes) > 1) {
-		is_arg = true
-	}
-	return affixes[0], affixes[len(affixes) - 1], is_arg
+	return strings.Split(simple_line, " ")
 }
 
 func match_commands(partial string, matches []string) (new_matches []string, exact bool) {
@@ -96,13 +89,28 @@ func match_dir(partial string, matches []string) (new_matches []string, exact bo
 	return matches, false
 }
 
-func match_completion_script(program string) (matches []string) {
+func match_completion_script(parts []string) (matches []string) {
+	num_parts := len(parts)
+	if (num_parts == 0) {
+		return matches
+	}
+	program := parts[0]
 	completion_script, exists := _completions[program]
 	if (!exists) {
 		return matches
 	}
 
-	prog := exec.Command(completion_script)
+	partial := ""
+	if (num_parts > 1) {
+		partial = parts[num_parts - 1]
+	}
+	previous_word := ""
+	if (num_parts > 2) {
+		previous_word = parts[num_parts - 2]
+	}
+
+
+	prog := exec.Command(completion_script, program, partial, previous_word)
 	out, err := prog.CombinedOutput()
 	if (err != nil) {
 		log.Fatal(err)
@@ -205,12 +213,13 @@ func handle_matches(line string, partial string, matches []string, double_tab bo
 func handle_autocomplete(line string, double_tab bool) (new_line string, new_double_tab bool) {
 	var matches []string
 	var exact_match bool	
-	var program string
-	var partial string
-	var is_arg bool
-	program, partial, is_arg = get_completion_parts(line)
+	var parts []string
+	parts = get_completion_parts(line)
+	num_parts := len(parts)
+	is_arg := num_parts > 1
+	partial := parts[num_parts - 1]
 
-	matches = match_completion_script(program)
+	matches = match_completion_script(parts)
 	if (len(matches) == 0) {
 		matches, exact_match = match_autocomplete(partial, is_arg)
 	}
