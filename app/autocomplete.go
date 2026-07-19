@@ -89,7 +89,7 @@ func match_dir(partial string, matches []string) (new_matches []string, exact bo
 	return matches, false
 }
 
-func match_completion_script(parts []string) (matches []string) {
+func match_completion_script(line string, parts []string) (matches []string) {
 	num_parts := len(parts)
 	if (num_parts == 0) {
 		return matches
@@ -111,6 +111,8 @@ func match_completion_script(parts []string) (matches []string) {
 
 
 	prog := exec.Command(completion_script, program, partial, previous_word)
+	prog.Env = append(prog.Env, fmt.Sprintf("COMP_LINE=%s", line))
+	prog.Env = append(prog.Env, fmt.Sprintf("COMP_POINT=%d", len(line)))
 	out, err := prog.CombinedOutput()
 	if (err != nil) {
 		log.Fatal(err)
@@ -219,7 +221,7 @@ func handle_autocomplete(line string, double_tab bool) (new_line string, new_dou
 	is_arg := num_parts > 1
 	partial := parts[num_parts - 1]
 
-	matches = match_completion_script(parts)
+	matches = match_completion_script(line, parts)
 	if (len(matches) == 0) {
 		matches, exact_match = match_autocomplete(partial, is_arg)
 	}
