@@ -34,7 +34,7 @@ func handle_unknown(raw_line string, cmd string, cmd_args []string, has_args boo
 	prog.Stderr = outputs.err_writer
 	if (is_background) {
 		var job_id, pid int
-		job_id, pid, err = queue_job(prog)
+		job_id, pid, err = queue_job(raw_line, prog)
 		fmt.Printf("[%d] %d\n", job_id, pid)
 	} else {
 		prog.Run()
@@ -146,5 +146,3 @@ func handle_complete(raw_line string, cmd string, cmd_args []string, has_args bo
 
 const CMD_JOBS = "jobs"
 
-func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, outputs *Outputs) {
-}

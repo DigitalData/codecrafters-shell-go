@@ -2,7 +2,35 @@ package main
 
 import (
 	"os/exec"
+	"slices"
 )
+
+type JobIDHeap []int
+
+func (jid JobIDHeap) Len() int { return len(jid) }
+func (jid JobIDHeap) Less(i, j int) bool { return jid[i] > jid[j]}
+func (jid JobIDHeap) Swap(i, j int) { jid[i], jid[j] = jid[j], jid[i]}
+
+func (jid *JobIDHeap) Push(x any) {
+	*jid = append(*jid, x.(int))
+}
+
+func (jid *JobIDHeap) Pop() any {
+	old := *jid
+	nold := len(old)
+	last := old[nold - 1]
+	*jid = old[: nold - 1]
+	return last
+}
+
+type BackgroundJob struct {
+	raw string
+	cmd *exec.Cmd
+}
+
+var _background_jobs map[int]*BackgroundJob = make(map[int]*BackgroundJob)
+// var _job_ids *JobIDHeap = &JobIDHeap{}
+var _job_ids []int
 
 func extract_background_args(args []string) (is_background bool, background_args []string) {
 	is_background = false
@@ -16,22 +44,41 @@ func extract_background_args(args []string) (is_background bool, background_args
 	return is_background, background_args
 }
 
-var _background_jobs map[int]*exec.Cmd = make(map[int]*exec.Cmd)
 
-func queue_job(prog *exec.Cmd) (job_id int, pid int, err error) {
+func queue_job(raw string, prog *exec.Cmd) (job_id int, pid int, err error) {
 	err = prog.Start()
 	if (err != nil) {
 		return -1, -1, err
 	}
 	job_id = 1
-	var exists bool
-	for true {
-		_, exists = _background_jobs[job_id]
-		if (!exists) {
-			break
+	if (len(_job_ids) > 0) {
+		var exists bool
+		max_job_id := slices.Max(_job_ids)
+		for job_id <= max_job_id {
+			_, exists = _background_jobs[job_id]
+			if (!exists) {
+				break
+			}
+			job_id ++
 		}
-		job_id ++
 	}
-	_background_jobs[job_id] = prog
+	_background_jobs[job_id] = &BackgroundJob{raw, prog}
+	_job_ids = append(_job_ids, job_id)
 	return job_id, prog.Process.Pid, nil
+}
+
+func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, outputs *Outputs) {
+	var job_id int
+	var job *BackgroundJob
+	for job_id, job = range _background_jobs {
+		// var prog *exec.Cmd = job.cmd
+		// var pstate *os.ProcessState = prog.ProcessState
+		status := "Running"
+		// if (pstate.Success()) {
+		// 	status = "Success"
+		// } else if (pstate.Exited()) {
+		// 	status = "Exited"
+		// }
+		outputs.outf("[%d]+  %17s %s\n", job_id, status, job.raw)
+	}
 }
