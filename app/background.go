@@ -64,12 +64,11 @@ func queue_job(raw string, prog *exec.Cmd) (job_id int, pid int, err error) {
 	}
 	_background_jobs[job_id] = &BackgroundJob{raw, prog}
 	_job_ids = append(_job_ids, job_id)
+	slices.Sort(_job_ids)
 	return job_id, prog.Process.Pid, nil
 }
 
 func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, outputs *Outputs) {
-	var job_id int
-	var job *BackgroundJob
 	var num_jobs = len(_job_ids)
 
 	if (num_jobs == 0) {
@@ -82,7 +81,11 @@ func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, 
 		last_id = _job_ids[num_jobs - 2]
 	}
 
-	for job_id, job = range _background_jobs {
+	var job_id int
+	var job *BackgroundJob
+	for job_id = range _job_ids {
+		job, _ = _background_jobs[job_id]
+
 		symbol := " "
 		if (job_id == current_id) {
 			symbol = "+"
