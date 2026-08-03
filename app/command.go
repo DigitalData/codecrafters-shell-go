@@ -41,7 +41,7 @@ func handle_echo(_ string, _ string, cmd_args []string, _ bool, outputs *Outputs
 const CMD_TYPE = "type"
 
 func handle_type(_ string, _ string, cmd_args []string, _ bool, outputs *Outputs) {
-	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE, CMD_PWD, CMD_CD, CMD_COMPLETE}
+	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE, CMD_PWD, CMD_CD, CMD_COMPLETE, CMD_JOBS}
 	for _, cmd_arg := range cmd_args {
 		if slices.Contains(builtin_cmds, cmd_arg) {
 			outputs.outf("%s is a shell builtin\n", cmd_arg)
@@ -132,4 +132,9 @@ func handle_complete(raw_line string, cmd string, cmd_args []string, has_args bo
 	default:
 		outputs.errf("complete: unsupported flag %s\n", flag)
 	}
+}
+
+const CMD_JOBS = "jobs"
+
+func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, outputs *Outputs) {
 }

@@ -127,6 +127,8 @@ func loop(term_state *term.State) bool {
 			handler = handle_cd
 		case CMD_COMPLETE:
 			handler = handle_complete
+		case CMD_JOBS:
+			handler = handle_jobs
 	}
 
 	term.Restore(int(os.Stdin.Fd()), term_state)
