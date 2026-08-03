@@ -1,8 +1,10 @@
 package main
 
 import (
+	"os"
 	"os/exec"
 	"slices"
+	"strings"
 )
 
 type BackgroundJob struct {
@@ -46,6 +48,7 @@ func queue_job(raw string, prog *exec.Cmd) (job_id int, pid int, err error) {
 	_background_jobs[job_id] = &BackgroundJob{raw, prog}
 	_job_ids = append(_job_ids, job_id)
 	slices.Sort(_job_ids)
+	go prog.Wait()
 	return job_id, prog.Process.Pid, nil
 }
 
@@ -62,24 +65,30 @@ func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, 
 		last_id = _job_ids[num_jobs - 2]
 	}
 
-	var job_id int
+	var job_id_index, job_id int
 	var job *BackgroundJob
-	for _, job_id = range _job_ids {
+	for job_id_index, job_id = range _job_ids {
 		job, _ = _background_jobs[job_id]
+		var raw string = job.raw
+
 		symbol := " "
-		if (job_id == current_id) {
+		switch job_id {
+		case current_id:
 			symbol = "+"
-		} else if (job_id == last_id) {
+		case last_id:
 			symbol = "-"
 		}
-		// var prog *exec.Cmd = job.cmd
-		// var pstate *os.ProcessState = prog.ProcessState
+		
+		var prog *exec.Cmd = job.cmd
+		var pstate *os.ProcessState = prog.ProcessState
 		status := "Running"
-		// if (pstate.Success()) {
-		// 	status = "Success"
-		// } else if (pstate.Exited()) {
-		// 	status = "Exited"
-		// }
-		outputs.outf("[%d]%s  %17s %s\n", job_id, symbol, status, job.raw)
+		if (pstate != nil) {
+			status = "Done"
+			raw = strings.TrimSuffix(raw, " &")
+			delete(_background_jobs, job_id)
+			_job_ids = slices.Delete(_job_ids, job_id_index, job_id_index + 1)
+		}
+		
+		outputs.outf("[%d]%s  %17s %s\n", job_id, symbol, status, raw)
 	}
 }
