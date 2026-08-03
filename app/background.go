@@ -47,7 +47,6 @@ func queue_job(raw string, prog *exec.Cmd) (job_id int, pid int, err error) {
 	}
 	_background_jobs[job_id] = &BackgroundJob{raw, prog}
 	_job_ids = append(_job_ids, job_id)
-	slices.Sort(_job_ids)
 	go prog.Wait()
 	return job_id, prog.Process.Pid, nil
 }
@@ -67,6 +66,8 @@ func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, 
 
 	var job_id_index, job_id int
 	var job *BackgroundJob
+	var delete_job_ids []int
+	var delete_job_id_indexes []int
 	for job_id_index, job_id = range _job_ids {
 		job, _ = _background_jobs[job_id]
 		var raw string = job.raw
@@ -85,10 +86,16 @@ func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, 
 		if (pstate != nil) {
 			status = "Done"
 			raw = strings.TrimSuffix(raw, " &")
-			delete(_background_jobs, job_id)
-			_job_ids = slices.Delete(_job_ids, job_id_index, job_id_index + 1)
+			delete_job_ids = append(delete_job_ids, job_id)
+			delete_job_id_indexes = append(delete_job_id_indexes, job_id_index)
 		}
-		
 		outputs.outf("[%d]%s  %17s %s\n", job_id, symbol, status, raw)
+	}
+
+	for didx := range len(delete_job_ids) {
+		delete_job_id := delete_job_ids[didx]
+		delete_job_id_idx := delete_job_id_indexes[didx]
+		delete(_background_jobs, delete_job_id)
+		_job_ids = slices.Delete(_job_ids, delete_job_id_idx, delete_job_id_idx + 1)
 	}
 }
