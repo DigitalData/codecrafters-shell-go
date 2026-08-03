@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -19,6 +20,9 @@ func handle_unknown(raw_line string, cmd string, cmd_args []string, has_args boo
 		return
 	}
 
+	var is_background bool
+	is_background, cmd_args = extract_background_args(cmd_args)
+
 	var prog *exec.Cmd
 	if has_args {
 		prog = exec.Command(cmd, cmd_args...)
@@ -28,7 +32,13 @@ func handle_unknown(raw_line string, cmd string, cmd_args []string, has_args boo
 
 	prog.Stdout = outputs.out_writer
 	prog.Stderr = outputs.err_writer
-	prog.Run()
+	if (is_background) {
+		var job_id, pid int
+		job_id, pid, err = queue_job(prog)
+		fmt.Printf("[%d] %d\n", job_id, pid)
+	} else {
+		prog.Run()
+	}
 }
 
 const CMD_ECHO = "echo"
