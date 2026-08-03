@@ -51,17 +51,34 @@ func queue_job(raw string, prog *exec.Cmd) (job_id int, pid int, err error) {
 	return job_id, prog.Process.Pid, nil
 }
 
-func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, outputs *Outputs) {
+func print_job_status(job_id int, status string, raw string, outputs *Outputs) {
 	var num_jobs = len(_job_ids)
-
 	if (num_jobs == 0) {
 		return
 	}
-
 	current_id := _job_ids[num_jobs - 1]
 	last_id := -1
 	if (num_jobs > 1) {
 		last_id = _job_ids[num_jobs - 2]
+	}
+
+	last_symbol := " "
+	switch job_id {
+	case current_id:
+		last_symbol = "+"
+	case last_id:
+		last_symbol = "-"
+	}
+
+	outputs.outf("[%d]%s  %17s %s\n", job_id, last_symbol, status, raw)
+}
+
+
+func print_and_reap_jobs(print_done_only bool, outputs *Outputs) {
+	var num_jobs = len(_job_ids)
+
+	if (num_jobs == 0) {
+		return
 	}
 
 	var job_id_index, job_id int
@@ -71,14 +88,6 @@ func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, 
 	for job_id_index, job_id = range _job_ids {
 		job, _ = _background_jobs[job_id]
 		var raw string = job.raw
-
-		symbol := " "
-		switch job_id {
-		case current_id:
-			symbol = "+"
-		case last_id:
-			symbol = "-"
-		}
 		
 		var prog *exec.Cmd = job.cmd
 		var pstate *os.ProcessState = prog.ProcessState
@@ -89,7 +98,10 @@ func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, 
 			delete_job_ids = append(delete_job_ids, job_id)
 			delete_job_id_indexes = append(delete_job_id_indexes, job_id_index)
 		}
-		outputs.outf("[%d]%s  %17s %s\n", job_id, symbol, status, raw)
+
+		if (status == "Done" || !print_done_only) {
+			print_job_status(job_id, status, raw, outputs)
+		}
 	}
 
 	for didx := range len(delete_job_ids) {
@@ -98,4 +110,41 @@ func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, 
 		delete(_background_jobs, delete_job_id)
 		_job_ids = slices.Delete(_job_ids, delete_job_id_idx, delete_job_id_idx + 1)
 	}
+}
+
+func handle_jobs(_ string, _ string, _ []string, _ bool, outputs *Outputs) {
+	print_and_reap_jobs(false, outputs)
+	// var num_jobs = len(_job_ids)
+
+	// if (num_jobs == 0) {
+	// 	return
+	// }
+
+	// var job_id_index, job_id int
+	// var job *BackgroundJob
+	// var delete_job_ids []int
+	// var delete_job_id_indexes []int
+	// for job_id_index, job_id = range _job_ids {
+	// 	job, _ = _background_jobs[job_id]
+	// 	var raw string = job.raw
+		
+	// 	var prog *exec.Cmd = job.cmd
+	// 	var pstate *os.ProcessState = prog.ProcessState
+	// 	status := "Running"
+	// 	if (pstate != nil) {
+	// 		status = "Done"
+	// 		raw = strings.TrimSuffix(raw, " &")
+	// 		delete_job_ids = append(delete_job_ids, job_id)
+	// 		delete_job_id_indexes = append(delete_job_id_indexes, job_id_index)
+	// 	}
+
+	// 	print_job_status(job_id, status, raw, outputs)
+	// }
+
+	// for didx := range len(delete_job_ids) {
+	// 	delete_job_id := delete_job_ids[didx]
+	// 	delete_job_id_idx := delete_job_id_indexes[didx]
+	// 	delete(_background_jobs, delete_job_id)
+	// 	_job_ids = slices.Delete(_job_ids, delete_job_id_idx, delete_job_id_idx + 1)
+	// }
 }

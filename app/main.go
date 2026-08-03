@@ -16,7 +16,7 @@ func parse_args(raw_line string) (args []string, outputs *Outputs, err error) {
 	backslash := false
 	set_output := UnsetOutput
 	raw_line = strings.TrimSpace(raw_line)
-	outputs = &Outputs{out_writer: os.Stdout, err_writer: os.Stdout}
+	outputs = standard_outputs()
 
 	for _, r := range raw_line {
 		quote := single_quotes || double_quotes
@@ -135,6 +135,9 @@ func loop(term_state *term.State) bool {
 	if handler != nil {
 		handler(raw_line, cmd, cmd_args, has_args, outputs)
 	}
+
+	print_and_reap_jobs(true, standard_outputs())
+
 	new_state, err := term.MakeRaw(int(os.Stdin.Fd()))
 	*term_state = *new_state
 

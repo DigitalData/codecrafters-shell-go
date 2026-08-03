@@ -49,6 +49,10 @@ func (o *Outputs) update(arg string, set_output SetOutputMode) (err error) {
 	return err
 }
 
+func standard_outputs() *Outputs {
+	return &Outputs{out_writer: os.Stdout, err_writer: os.Stdout}
+}
+
 func get_filepath(filepath string) string {
 	affixes := [...]string{"'", "\""}
 	for _, r := range affixes {
