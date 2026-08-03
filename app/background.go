@@ -70,7 +70,25 @@ func queue_job(raw string, prog *exec.Cmd) (job_id int, pid int, err error) {
 func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, outputs *Outputs) {
 	var job_id int
 	var job *BackgroundJob
+	var num_jobs = len(_job_ids)
+
+	if (num_jobs == 0) {
+		return
+	}
+
+	current_id := _job_ids[num_jobs - 1]
+	last_id := -1
+	if (num_jobs > 1) {
+		last_id = _job_ids[num_jobs - 2]
+	}
+
 	for job_id, job = range _background_jobs {
+		symbol := " "
+		if (job_id == current_id) {
+			symbol = "+"
+		} else if (job_id == last_id) {
+			symbol = "-"
+		}
 		// var prog *exec.Cmd = job.cmd
 		// var pstate *os.ProcessState = prog.ProcessState
 		status := "Running"
@@ -79,6 +97,6 @@ func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, 
 		// } else if (pstate.Exited()) {
 		// 	status = "Exited"
 		// }
-		outputs.outf("[%d]+  %17s %s\n", job_id, status, job.raw)
+		outputs.outf("[%d]%s  %17s %s\n", job_id, symbol, status, job.raw)
 	}
 }
