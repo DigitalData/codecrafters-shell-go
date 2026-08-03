@@ -5,31 +5,12 @@ import (
 	"slices"
 )
 
-type JobIDHeap []int
-
-func (jid JobIDHeap) Len() int { return len(jid) }
-func (jid JobIDHeap) Less(i, j int) bool { return jid[i] > jid[j]}
-func (jid JobIDHeap) Swap(i, j int) { jid[i], jid[j] = jid[j], jid[i]}
-
-func (jid *JobIDHeap) Push(x any) {
-	*jid = append(*jid, x.(int))
-}
-
-func (jid *JobIDHeap) Pop() any {
-	old := *jid
-	nold := len(old)
-	last := old[nold - 1]
-	*jid = old[: nold - 1]
-	return last
-}
-
 type BackgroundJob struct {
 	raw string
 	cmd *exec.Cmd
 }
 
 var _background_jobs map[int]*BackgroundJob = make(map[int]*BackgroundJob)
-// var _job_ids *JobIDHeap = &JobIDHeap{}
 var _job_ids []int
 
 func extract_background_args(args []string) (is_background bool, background_args []string) {
@@ -83,9 +64,8 @@ func handle_jobs(raw_line string, cmd string, cmd_args []string, has_args bool, 
 
 	var job_id int
 	var job *BackgroundJob
-	for job_id = range _job_ids {
+	for _, job_id = range _job_ids {
 		job, _ = _background_jobs[job_id]
-
 		symbol := " "
 		if (job_id == current_id) {
 			symbol = "+"
