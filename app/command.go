@@ -155,9 +155,5 @@ func handle_complete(raw_line string, cmd string, cmd_args []string, has_args bo
 }
 
 const CMD_JOBS = "jobs"
-
 const CMD_HISTORY = "history"
 
-func handle_history(raw_line string, cmd string, cmd_args []string, has_args bool, shell_io *ShellIO) {
-	/* do nothing */
-}

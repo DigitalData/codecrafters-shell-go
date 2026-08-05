@@ -60,6 +60,7 @@ func loop(term_state *term.State) bool {
 	raw_line = strings.TrimSpace(raw_line)
 	
 	if len(raw_line) == 0 { return true }
+	append_history(raw_line)
 	var pipelines []*ShellPipeline
 	var err error
 	pipelines, err = parse_args(raw_line)
