@@ -1,10 +1,12 @@
-package main
+package command
 
 import (
 	"os"
 	"os/exec"
 	"slices"
 	"strings"
+
+	"github.com/codecrafters-io/shell-starter-go/app/shell_io"
 )
 
 type BackgroundJob struct {
@@ -51,7 +53,7 @@ func queue_job(raw string, prog *exec.Cmd) (job_id int, pid int, err error) {
 	return job_id, prog.Process.Pid, nil
 }
 
-func print_job_status(job_id int, status string, raw string, shell_io *ShellIO) {
+func print_job_status(job_id int, status string, raw string, pipe_io *shell_io.ShellIO) {
 	var num_jobs = len(_job_ids)
 	if (num_jobs == 0) {
 		return
@@ -70,11 +72,11 @@ func print_job_status(job_id int, status string, raw string, shell_io *ShellIO) 
 		last_symbol = "-"
 	}
 
-	shell_io.outf("[%d]%s  %17s %s\n", job_id, last_symbol, status, raw)
+	pipe_io.Outf("[%d]%s  %17s %s\n", job_id, last_symbol, status, raw)
 }
 
 
-func print_and_reap_jobs(print_done_only bool, shell_io *ShellIO) {
+func PrintAndReapJobs(print_done_only bool, pipe_io *shell_io.ShellIO) {
 	var num_jobs = len(_job_ids)
 
 	if (num_jobs == 0) {
@@ -100,7 +102,7 @@ func print_and_reap_jobs(print_done_only bool, shell_io *ShellIO) {
 		}
 
 		if (status == "Done" || !print_done_only) {
-			print_job_status(job_id, status, raw, shell_io)
+			print_job_status(job_id, status, raw, pipe_io)
 		}
 	}
 
@@ -112,6 +114,6 @@ func print_and_reap_jobs(print_done_only bool, shell_io *ShellIO) {
 	}
 }
 
-func handle_jobs(_ string, _ string, _ []string, _ bool, shell_io *ShellIO) {
-	print_and_reap_jobs(false, shell_io)
+func handle_jobs(_ string, _ string, _ []string, _ bool, pipe_io *shell_io.ShellIO) {
+	PrintAndReapJobs(false, pipe_io)
 }

@@ -4,16 +4,18 @@ import (
 	"log"
 	"strings"
 	"unicode"
+
+	"github.com/codecrafters-io/shell-starter-go/app/shell_io"
 )
 
 type ShellPipeline struct {
 	raw      string
 	args     []string
-	shell_io  *ShellIO
+	pipe_io  *shell_io.ShellIO
 }
 
 func unparsed_pipeline() *ShellPipeline {
-	return &ShellPipeline{"", []string{}, pipeline_shell_io(),}
+	return &ShellPipeline{"", []string{}, shell_io.PipelineShellIO(),}
 }
 
 func parse_args(raw_line string) (pipelines []*ShellPipeline, err error) {
@@ -21,11 +23,11 @@ func parse_args(raw_line string) (pipelines []*ShellPipeline, err error) {
 	single_quotes := false
 	double_quotes := false
 	backslash := false
-	set_output := UnsetOutput
+	set_output := shell_io.UnsetOutput
 	raw_line = strings.TrimSpace(raw_line)
 	pipeline := unparsed_pipeline()
 	line := ""
-	var shell_io *ShellIO = default_shell_io()
+	var pipe_io *shell_io.ShellIO = shell_io.DefaultShellIO()
 
 	for _, r := range raw_line {
 		line += string(r)
@@ -34,32 +36,32 @@ func parse_args(raw_line string) (pipelines []*ShellPipeline, err error) {
 			continue_loop := false
 			switch r {
 			case '\\':
-				if set_output == UnsetOutput && !single_quotes {
+				if set_output == shell_io.UnsetOutput && !single_quotes {
 					backslash = true
 					continue_loop = true
 				}
 			case '\'':
-				if set_output == UnsetOutput && !double_quotes {
+				if set_output == shell_io.UnsetOutput && !double_quotes {
 					single_quotes = !single_quotes
 					continue_loop = true
 				}
 			case '"':
-				if set_output == UnsetOutput && !single_quotes {
+				if set_output == shell_io.UnsetOutput && !single_quotes {
 					double_quotes = !double_quotes
 					continue_loop = true
 				}
 			case '>':
 				if !quote && !backslash {
 					switch set_output {
-					case SetOutputOut:
-						set_output = SetOutputOutAppend
-					case SetOutputErr:
-						set_output = SetOutputErrAppend
+					case shell_io.SetOutputOut:
+						set_output = shell_io.SetOutputOutAppend
+					case shell_io.SetOutputErr:
+						set_output = shell_io.SetOutputErrAppend
 					default:
 						if len(current_arg) == 1 && current_arg[0] == '2' {
-							set_output = SetOutputErr
+							set_output = shell_io.SetOutputErr
 						} else {
-							set_output = SetOutputOut
+							set_output = shell_io.SetOutputOut
 						}
 					}
 					current_arg = ""
@@ -71,7 +73,7 @@ func parse_args(raw_line string) (pipelines []*ShellPipeline, err error) {
 					pipelines = append(pipelines, pipeline)
 					pipeline = unparsed_pipeline()
 					line = ""
-					shell_io = default_shell_io()
+					pipe_io = shell_io.DefaultShellIO()
 					continue_loop = true
 				}
 			default:
@@ -80,14 +82,14 @@ func parse_args(raw_line string) (pipelines []*ShellPipeline, err error) {
 
 					if len(current_arg) == 0 {
 						break
-					} else if set_output != UnsetOutput {
-						err = shell_io.update(current_arg, set_output)
+					} else if set_output != shell_io.UnsetOutput {
+						err = pipe_io.Update(current_arg, set_output)
 
 						if err != nil {
 							log.Fatal(err)
 							return nil, err
 						}
-						set_output = UnsetOutput
+						set_output = shell_io.UnsetOutput
 					} else {
 						pipeline.args = append(pipeline.args, current_arg)
 					}
@@ -104,16 +106,16 @@ func parse_args(raw_line string) (pipelines []*ShellPipeline, err error) {
 		backslash = false
 	}
 
-	if set_output != UnsetOutput {
-		err = shell_io.update(current_arg, set_output)
+	if set_output != shell_io.UnsetOutput {
+		err = pipe_io.Update(current_arg, set_output)
 		if err != nil {
 			return nil, err
 		}
-		set_output = UnsetOutput
+		set_output = shell_io.UnsetOutput
 	} else if len(current_arg) > 0 {
 		pipeline.args = append(pipeline.args, current_arg)
 	}
-	pipeline.shell_io = shell_io
+	pipeline.pipe_io = pipe_io
 	if (len(pipeline.args) > 0) {
 		pipeline.raw = strings.TrimRight(line, " |")
 		pipelines = append(pipelines, pipeline)

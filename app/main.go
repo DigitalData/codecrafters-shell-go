@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/codecrafters-io/shell-starter-go/app/command"
+	"github.com/codecrafters-io/shell-starter-go/app/shell_io"
 	"golang.org/x/term"
 )
 
@@ -15,41 +17,23 @@ func run_pipeline(pipeline *ShellPipeline, next_pipeline *ShellPipeline) {
 	}
 	
 	if (next_pipeline != nil) {
-		next_pipeline.shell_io.input(pipeline.shell_io.out_reader)
+		next_pipeline.pipe_io.Input(pipeline.pipe_io.OutReader)
 	}
 
 	var cmd string = pipeline.args[0]
 	var cmd_args []string = pipeline.args[1:]
 	var has_args bool = len(cmd_args) > 0
-	if cmd == CMD_EXIT { os.Exit(0) }
 
-	var handler CMDHandler = handle_unknown
-	switch cmd {
-		case CMD_ECHO: 
-			handler = handle_echo
-		case CMD_TYPE:
-			handler = handle_type
-		case CMD_PWD:
-			handler = handle_pwd
-		case CMD_CD:
-			handler = handle_cd
-		case CMD_COMPLETE:
-			handler = handle_complete
-		case CMD_JOBS:
-			handler = handle_jobs
-		case CMD_HISTORY:
-			handler = handle_history
-	}
-
+	var handler command.BuiltinHandler = command.GetHandler(cmd)
 	if (handler != nil) {
 		if (next_pipeline != nil) {
 			go func () {
-				defer pipeline.shell_io.out_writer.Close()
-				defer pipeline.shell_io.err_writer.Close()
-				handler(pipeline.raw, cmd, cmd_args, has_args, pipeline.shell_io)
+				defer pipeline.pipe_io.OutWriter.Close()
+				defer pipeline.pipe_io.ErrWriter.Close()
+				handler(pipeline.raw, cmd, cmd_args, has_args, pipeline.pipe_io)
 			}()
 		} else {
-			handler(pipeline.raw, cmd, cmd_args, has_args, pipeline.shell_io)
+			handler(pipeline.raw, cmd, cmd_args, has_args, pipeline.pipe_io)
 		}
 	}
 }
@@ -60,7 +44,7 @@ func loop(term_state *term.State) bool {
 	raw_line = strings.TrimSpace(raw_line)
 	
 	if len(raw_line) == 0 { return true }
-	append_history(raw_line)
+	command.AppendHistory(raw_line)
 	var pipelines []*ShellPipeline
 	var err error
 	pipelines, err = parse_args(raw_line)
@@ -78,7 +62,7 @@ func loop(term_state *term.State) bool {
 		run_pipeline(pipeline, next_pipeline)
 	}	
 	run_pipeline(pipelines[num_pipelines - 1], nil)	
-	print_and_reap_jobs(true, default_shell_io())
+	command.PrintAndReapJobs(true, shell_io.DefaultShellIO())
 
 	new_state, err := term.MakeRaw(int(os.Stdin.Fd()))
 	*term_state = *new_state

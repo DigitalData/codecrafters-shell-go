@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/codecrafters-io/shell-starter-go/app/command"
 	"golang.org/x/term"
 )
 
@@ -21,8 +22,9 @@ func get_completion_parts(line string) (parts []string) {
 }
 
 func match_commands(partial string, matches []string) (new_matches []string, exact bool) {
-	commands := []string{CMD_ECHO, CMD_EXIT}
-	for _, command := range commands {
+	builtins := []command.Builtin{command.BuiltinEcho, command.BuiltinExit}
+	for _, builtin := range builtins {
+		var command string = string(builtin)
 		if command == partial {
 			return []string{command}, true
 		} else if strings.HasPrefix(command, partial) {
@@ -95,7 +97,7 @@ func match_completion_script(line string, parts []string) (matches []string) {
 		return matches
 	}
 	program := parts[0]
-	completion_script, exists := _completions[program]
+	completion_script, exists := command.GetCompleter(program)
 	if (!exists) {
 		return matches
 	}
