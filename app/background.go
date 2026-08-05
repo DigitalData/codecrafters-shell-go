@@ -51,7 +51,7 @@ func queue_job(raw string, prog *exec.Cmd) (job_id int, pid int, err error) {
 	return job_id, prog.Process.Pid, nil
 }
 
-func print_job_status(job_id int, status string, raw string, outputs *Outputs) {
+func print_job_status(job_id int, status string, raw string, shell_io *ShellIO) {
 	var num_jobs = len(_job_ids)
 	if (num_jobs == 0) {
 		return
@@ -70,11 +70,11 @@ func print_job_status(job_id int, status string, raw string, outputs *Outputs) {
 		last_symbol = "-"
 	}
 
-	outputs.outf("[%d]%s  %17s %s\n", job_id, last_symbol, status, raw)
+	shell_io.outf("[%d]%s  %17s %s\n", job_id, last_symbol, status, raw)
 }
 
 
-func print_and_reap_jobs(print_done_only bool, outputs *Outputs) {
+func print_and_reap_jobs(print_done_only bool, shell_io *ShellIO) {
 	var num_jobs = len(_job_ids)
 
 	if (num_jobs == 0) {
@@ -100,7 +100,7 @@ func print_and_reap_jobs(print_done_only bool, outputs *Outputs) {
 		}
 
 		if (status == "Done" || !print_done_only) {
-			print_job_status(job_id, status, raw, outputs)
+			print_job_status(job_id, status, raw, shell_io)
 		}
 	}
 
@@ -112,39 +112,6 @@ func print_and_reap_jobs(print_done_only bool, outputs *Outputs) {
 	}
 }
 
-func handle_jobs(_ string, _ string, _ []string, _ bool, outputs *Outputs) {
-	print_and_reap_jobs(false, outputs)
-	// var num_jobs = len(_job_ids)
-
-	// if (num_jobs == 0) {
-	// 	return
-	// }
-
-	// var job_id_index, job_id int
-	// var job *BackgroundJob
-	// var delete_job_ids []int
-	// var delete_job_id_indexes []int
-	// for job_id_index, job_id = range _job_ids {
-	// 	job, _ = _background_jobs[job_id]
-	// 	var raw string = job.raw
-		
-	// 	var prog *exec.Cmd = job.cmd
-	// 	var pstate *os.ProcessState = prog.ProcessState
-	// 	status := "Running"
-	// 	if (pstate != nil) {
-	// 		status = "Done"
-	// 		raw = strings.TrimSuffix(raw, " &")
-	// 		delete_job_ids = append(delete_job_ids, job_id)
-	// 		delete_job_id_indexes = append(delete_job_id_indexes, job_id_index)
-	// 	}
-
-	// 	print_job_status(job_id, status, raw, outputs)
-	// }
-
-	// for didx := range len(delete_job_ids) {
-	// 	delete_job_id := delete_job_ids[didx]
-	// 	delete_job_id_idx := delete_job_id_indexes[didx]
-	// 	delete(_background_jobs, delete_job_id)
-	// 	_job_ids = slices.Delete(_job_ids, delete_job_id_idx, delete_job_id_idx + 1)
-	// }
+func handle_jobs(_ string, _ string, _ []string, _ bool, shell_io *ShellIO) {
+	print_and_reap_jobs(false, shell_io)
 }

@@ -1,0 +1,43 @@
+banana mango
+blueberry apple
+strawberry pear
+orange raspberry
+pineapple grape
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+so this is just a stream now?
+\n
+EOF
+EOF
+
+
+this is a test
+
+

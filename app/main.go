@@ -1,119 +1,27 @@
 package main
 
 import (
-	"log"
 	"os"
 	"strings"
-	"unicode"
 
 	"golang.org/x/term"
 )
 
-func parse_args(raw_line string) (args []string, outputs *Outputs, err error) {
-	current_arg := ""
-	single_quotes := false
-	double_quotes := false
-	backslash := false
-	set_output := UnsetOutput
-	raw_line = strings.TrimSpace(raw_line)
-	outputs = standard_outputs()
 
-	for _, r := range raw_line {
-		quote := single_quotes || double_quotes
-		if (!backslash) {
-			continue_loop := false
-			switch r {
-			case '\\':
-				if (set_output == UnsetOutput && !single_quotes) {
-					backslash = true
-					continue_loop = true
-				}
-			case '\'':
-				if (set_output == UnsetOutput && !double_quotes) {
-					single_quotes = !single_quotes
-					continue_loop = true
-				}
-			case '"':
-				if (set_output == UnsetOutput && !single_quotes) {
-					double_quotes = !double_quotes
-					continue_loop = true
-				}
-			case '>':
-				if (!quote && !backslash) {
-					switch set_output {
-					case SetOutputOut:
-						set_output = SetOutputOutAppend
-					case SetOutputErr:
-						set_output = SetOutputErrAppend
-					default:
-						if (len(current_arg) == 1 && current_arg[0] == '2') {
-							set_output = SetOutputErr
-						} else {
-							set_output = SetOutputOut
-						}
-					}
-					current_arg = ""
-					continue_loop = true
-				}
-			default:
-				if (!quote && unicode.IsSpace(r)) {
-					continue_loop = true
-					
-					if (len(current_arg) == 0) {
-						break
-					} else if(set_output != UnsetOutput) {
-						err = outputs.update(current_arg, set_output)
+func run_pipeline(pipeline *ShellPipeline, next_pipeline *ShellPipeline) {
 
-						if (err != nil) {
-							log.Fatal(err)
-							return nil, nil, err
-						}
-						set_output = UnsetOutput
-					} else {
-						args = append(args, current_arg)
-					}
-					current_arg = ""
-				}
-			}
-
-			if (continue_loop) {
-				continue
-			}
-		}
-
-		current_arg += string(r)
-		backslash = false
+	if len(pipeline.args) == 0 { 
+		return
 	}
-
-	if (set_output != UnsetOutput) {
-		err = outputs.update(current_arg, set_output)
-		if (err != nil) {
-			return nil, nil, err
-		}
-		set_output = UnsetOutput
-	} else if (len(current_arg) > 0) {
-		args = append(args, current_arg)
-	}
-	return args, outputs, nil
-}
-
-func loop(term_state *term.State) bool {
-	var raw_line string = read_line()
-	raw_line = strings.TrimSpace(raw_line)
 	
-	if len(raw_line) == 0 { return true }
-	var args []string
-	var outputs *Outputs
-	var err error
-	args, outputs, err = parse_args(raw_line)
-	if (err != nil) {
-		return true
+	if (next_pipeline != nil) {
+		next_pipeline.shell_io.input(pipeline.shell_io.out_reader)
 	}
-	if len(args) == 0 { return true }
-	var cmd string = args[0]
-	var cmd_args []string = args[1:]
+
+	var cmd string = pipeline.args[0]
+	var cmd_args []string = pipeline.args[1:]
 	var has_args bool = len(cmd_args) > 0
-	if cmd == CMD_EXIT { return false }
+	if cmd == CMD_EXIT { os.Exit(0) }
 
 	var handler CMDHandler = handle_unknown
 	switch cmd {
@@ -131,12 +39,43 @@ func loop(term_state *term.State) bool {
 			handler = handle_jobs
 	}
 
-	term.Restore(int(os.Stdin.Fd()), term_state)
-	if handler != nil {
-		handler(raw_line, cmd, cmd_args, has_args, outputs)
+	if (handler != nil) {
+		if (next_pipeline != nil) {
+			go func () {
+				defer pipeline.shell_io.out_writer.Close()
+				defer pipeline.shell_io.err_writer.Close()
+				handler(pipeline.raw, cmd, cmd_args, has_args, pipeline.shell_io)
+			}()
+		} else {
+			handler(pipeline.raw, cmd, cmd_args, has_args, pipeline.shell_io)
+		}
+	}
+}
+
+
+func loop(term_state *term.State) bool {
+	var raw_line string = read_line()
+	raw_line = strings.TrimSpace(raw_line)
+	
+	if len(raw_line) == 0 { return true }
+	var pipelines []*ShellPipeline
+	var err error
+	pipelines, err = parse_args(raw_line)
+	if (err != nil) {
+		return true
 	}
 
-	print_and_reap_jobs(true, standard_outputs())
+	term.Restore(int(os.Stdin.Fd()), term_state)
+
+	num_pipelines := len(pipelines)
+	if (num_pipelines == 0) { return true }
+	for pipe_idx := range num_pipelines - 1 {
+		pipeline := pipelines[pipe_idx]
+		next_pipeline := pipelines[pipe_idx + 1]
+		run_pipeline(pipeline, next_pipeline)
+	}	
+	run_pipeline(pipelines[num_pipelines - 1], nil)	
+	print_and_reap_jobs(true, default_shell_io())
 
 	new_state, err := term.MakeRaw(int(os.Stdin.Fd()))
 	*term_state = *new_state

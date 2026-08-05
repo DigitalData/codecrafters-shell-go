@@ -10,13 +10,13 @@ import (
 )
 
 const CMD_EXIT = "exit"
-type CMDHandler func(raw_line string, cmd string, cmd_args []string, has_args bool, outputs *Outputs)
+type CMDHandler func(raw_line string, cmd string, cmd_args []string, has_args bool, shell_io *ShellIO)
 
-func handle_unknown(raw_line string, cmd string, cmd_args []string, has_args bool, outputs *Outputs) {
+func handle_unknown(raw_line string, cmd string, cmd_args []string, has_args bool, shell_io *ShellIO) {
 	var err error
 	_, err = exec.LookPath(cmd)
 	if err != nil {
-		outputs.errf("%s: command not found\n", cmd)
+		shell_io.errf("%s: command not found\n", cmd)
 		return
 	}
 
@@ -29,9 +29,10 @@ func handle_unknown(raw_line string, cmd string, cmd_args []string, has_args boo
 	} else {
 		prog = exec.Command(cmd)
 	}
-
-	prog.Stdout = outputs.out_writer
-	prog.Stderr = outputs.err_writer
+	
+	prog.Stdin = shell_io.in_reader
+	prog.Stdout = shell_io.out_writer
+	prog.Stderr = shell_io.err_writer
 	if (is_background) {
 		var job_id, pid int
 		job_id, pid, err = queue_job(raw_line, prog)
@@ -43,18 +44,18 @@ func handle_unknown(raw_line string, cmd string, cmd_args []string, has_args boo
 
 const CMD_ECHO = "echo"
 
-func handle_echo(_ string, _ string, cmd_args []string, _ bool, outputs *Outputs) {
+func handle_echo(_ string, _ string, cmd_args []string, _ bool, shell_io *ShellIO) {
 	var output string = strings.Join(cmd_args, " ")
-	outputs.outf("%s\n", output)
+	shell_io.outf("%s\n", output)
 }
 
 const CMD_TYPE = "type"
 
-func handle_type(_ string, _ string, cmd_args []string, _ bool, outputs *Outputs) {
+func handle_type(_ string, _ string, cmd_args []string, _ bool, shell_io *ShellIO) {
 	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE, CMD_PWD, CMD_CD, CMD_COMPLETE, CMD_JOBS}
 	for _, cmd_arg := range cmd_args {
 		if slices.Contains(builtin_cmds, cmd_arg) {
-			outputs.outf("%s is a shell builtin\n", cmd_arg)
+			shell_io.outf("%s is a shell builtin\n", cmd_arg)
 			continue
 		}
 
@@ -62,29 +63,29 @@ func handle_type(_ string, _ string, cmd_args []string, _ bool, outputs *Outputs
 		var err error
 		cmd_path, err = exec.LookPath(cmd_arg)
 		if err == nil {
-			outputs.outf("%s is %s\n", cmd_arg, cmd_path)
+			shell_io.outf("%s is %s\n", cmd_arg, cmd_path)
 			continue
 		}
 
-		outputs.outf("%s: not found\n", cmd_arg)
+		shell_io.outf("%s: not found\n", cmd_arg)
 	}
 }
 
 const CMD_PWD = "pwd"
 
-func handle_pwd(_ string, _ string, _ []string, _ bool, outputs *Outputs) {
+func handle_pwd(_ string, _ string, _ []string, _ bool, shell_io *ShellIO) {
 	var cwd string
 	var err error
 	cwd, err = os.Getwd()
 	if err != nil {
 		log.Fatal(err)
 	}
-	outputs.outf("%s\n", cwd)
+	shell_io.outf("%s\n", cwd)
 }
 
 const CMD_CD = "cd"
 
-func handle_cd(_ string, _ string, cmd_args []string, has_args bool, outputs *Outputs) {
+func handle_cd(_ string, _ string, cmd_args []string, has_args bool, shell_io *ShellIO) {
 	var err error
 	var home_dir string
 	home_dir, err = os.UserHomeDir()
@@ -100,16 +101,16 @@ func handle_cd(_ string, _ string, cmd_args []string, has_args bool, outputs *Ou
 
 	err = os.Chdir(raw_args)
 	if err != nil {
-		outputs.outf("cd: %s: No such file or directory\n", raw_args)
+		shell_io.outf("cd: %s: No such file or directory\n", raw_args)
 	}
 }
 
 const CMD_COMPLETE = "complete"
 var _completions map[string]string = make(map[string]string)
 
-func handle_complete(raw_line string, cmd string, cmd_args []string, has_args bool, outputs *Outputs) {
+func handle_complete(raw_line string, cmd string, cmd_args []string, has_args bool, shell_io *ShellIO) {
 	if (len(cmd_args) <= 1) {
-		outputs.err("complete: no flags given\n")
+		shell_io.err("complete: no flags given\n")
 	}
 
 	flag := cmd_args[0]
@@ -118,7 +119,7 @@ func handle_complete(raw_line string, cmd string, cmd_args []string, has_args bo
 	switch flag {
 	case "-C":
 		if (num_args != 3) {
-			outputs.err("complete: expected two inputs for '-C' flag\n")
+			shell_io.err("complete: expected two inputs for '-C' flag\n")
 			return
 		}
 		program := cmd_args[num_args - 1]
@@ -126,7 +127,7 @@ func handle_complete(raw_line string, cmd string, cmd_args []string, has_args bo
 		_completions[program] = program_path
 	case "-r":
 		if (num_args != 2) {
-			outputs.err("complete: expected two inputs for '-C' flag\n")
+			shell_io.err("complete: expected two inputs for '-C' flag\n")
 			return
 		}
 		program := cmd_args[num_args - 1]
@@ -135,12 +136,12 @@ func handle_complete(raw_line string, cmd string, cmd_args []string, has_args bo
 		program := cmd_args[num_args - 1]
 		program_path, exists := _completions[program]
 		if (exists) {
-			outputs.outf("complete -C '%s' %s\n", program_path, program)
+			shell_io.outf("complete -C '%s' %s\n", program_path, program)
 		} else {
-			outputs.errf("complete: %s: no completion specification\n", program)
+			shell_io.errf("complete: %s: no completion specification\n", program)
 		}
 	default:
-		outputs.errf("complete: unsupported flag %s\n", flag)
+		shell_io.errf("complete: unsupported flag %s\n", flag)
 	}
 }
 
