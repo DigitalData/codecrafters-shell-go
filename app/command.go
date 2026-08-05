@@ -52,7 +52,16 @@ func handle_echo(_ string, _ string, cmd_args []string, _ bool, shell_io *ShellI
 const CMD_TYPE = "type"
 
 func handle_type(_ string, _ string, cmd_args []string, _ bool, shell_io *ShellIO) {
-	builtin_cmds := []string{CMD_EXIT, CMD_ECHO, CMD_TYPE, CMD_PWD, CMD_CD, CMD_COMPLETE, CMD_JOBS}
+	builtin_cmds := []string{
+		CMD_EXIT, 
+		CMD_ECHO, 
+		CMD_TYPE, 
+		CMD_PWD,
+		CMD_CD, 
+		CMD_COMPLETE, 
+		CMD_JOBS, 
+		CMD_HISTORY,
+	}
 	for _, cmd_arg := range cmd_args {
 		if slices.Contains(builtin_cmds, cmd_arg) {
 			shell_io.outf("%s is a shell builtin\n", cmd_arg)
@@ -147,3 +156,8 @@ func handle_complete(raw_line string, cmd string, cmd_args []string, has_args bo
 
 const CMD_JOBS = "jobs"
 
+const CMD_HISTORY = "history"
+
+func handle_history(raw_line string, cmd string, cmd_args []string, has_args bool, shell_io *ShellIO) {
+	/* do nothing */
+}

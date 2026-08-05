@@ -37,6 +37,8 @@ func run_pipeline(pipeline *ShellPipeline, next_pipeline *ShellPipeline) {
 			handler = handle_complete
 		case CMD_JOBS:
 			handler = handle_jobs
+		case CMD_HISTORY:
+			handler = handle_history
 	}
 
 	if (handler != nil) {
